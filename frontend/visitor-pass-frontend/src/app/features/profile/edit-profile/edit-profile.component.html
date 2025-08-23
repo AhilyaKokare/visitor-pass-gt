@@ -1,0 +1,28 @@
+<div class="container mt-4" *ngIf="editableProfile; else loading">
+  <h3>Edit My Profile</h3>
+  <div class="card">
+    <div class="card-body">
+       <p class="text-muted">You can only update your contact information, email, and address.</p>
+      <form (ngSubmit)="onUpdateProfile()" #profileForm="ngForm">
+        <div class="mb-3">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-control" name="email" [(ngModel)]="editableProfile.email" required email>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Contact Number</label>
+          <input type="text" class="form-control" name="contact" [(ngModel)]="editableProfile.contact">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Address</label>
+          <textarea class="form-control" name="address" [(ngModel)]="editableProfile.address" rows="3"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" [disabled]="!profileForm.valid || isSubmitting">
+          <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+           {{ isSubmitting ? 'Saving...' : 'Save Changes' }}
+        </button>
+        <a routerLink="/profile" class="btn btn-secondary ms-2">Cancel</a>
+      </form>
+    </div>
+  </div>
+</div>
+<ng-template #loading><app-loading-spinner></app-loading-spinner></ng-template>

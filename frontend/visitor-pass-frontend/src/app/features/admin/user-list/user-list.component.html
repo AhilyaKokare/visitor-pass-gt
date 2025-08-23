@@ -1,0 +1,175 @@
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>User Management</h3>
+    <div>
+      <button type="button" class="btn btn-secondary me-2" (click)="loadUsers()">
+        <i class="bi bi-arrow-clockwise"></i> Refresh List
+      </button>
+      <!-- This button opens the modal defined below -->
+      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
+        <i class="bi bi-plus-circle"></i> Create New User
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading; else userTable">
+    <app-loading-spinner></app-loading-spinner>
+  </div>
+
+  <ng-template #userTable>
+    <div class="table-responsive">
+      <table class="table table-striped table-hover">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <!-- Department column removed for Tenant Admin dashboard -->
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+         <tr *ngFor="let user of users">
+            <td>{{ user.name }}</td>
+            <td>{{ user.email }}</td>
+            <td>{{ user.role.replace('ROLE_', '') | titlecase }}</td>
+            <!-- Department column removed for Tenant Admin dashboard -->
+            <td>
+              <span class="badge" [ngClass]="user.isActive ? 'bg-success' : 'bg-secondary'">
+                {{ user.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td>
+              <button class="btn btn-sm" [ngClass]="user.isActive ? 'btn-warning' : 'btn-success'" (click)="toggleUserStatus(user)">
+                {{ user.isActive ? 'Deactivate' : 'Activate' }}
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="!isLoading && userPageDetails?.empty">
+            <td colspan="5" class="text-center">No users found for this location. Click "Create New User" to begin.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <app-pagination [page]="userPageDetails" (pageChange)="onPageChange($event)"></app-pagination>
+  </ng-template>
+</div>
+
+<!-- Create User Modal -->
+<div class="modal fade" id="createUserModal" tabindex="-1" aria-labelledby="createUserModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="createUserModalLabel">Create New User</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" #closeModalButton></button>
+      </div>
+      <div class="modal-body">
+        <form (ngSubmit)="onCreateUser()" #userForm="ngForm">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Full Name *</label>
+              <input type="text"
+                     class="form-control"
+                     [class.is-invalid]="hasValidationError('name')"
+                     name="name"
+                     [(ngModel)]="newUser.name"
+                     (input)="onFieldChange('name')"
+                     required
+                     placeholder="Enter full name">
+              <div class="invalid-feedback" *ngIf="hasValidationError('name')">
+                {{ getValidationError('name') }}
+              </div>
+              <div class="form-text" *ngIf="!hasValidationError('name')">Minimum 2 characters</div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Email *</label>
+              <input type="email"
+                     class="form-control"
+                     [class.is-invalid]="hasValidationError('email')"
+                     name="email"
+                     [(ngModel)]="newUser.email"
+                     (input)="onFieldChange('email')"
+                     required
+                     placeholder="user@example.com">
+              <div class="invalid-feedback" *ngIf="hasValidationError('email')">
+                {{ getValidationError('email') }}
+              </div>
+              <div class="form-text" *ngIf="!hasValidationError('email')">Must be a valid email address</div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Password *</label>
+              <input type="password"
+                     class="form-control"
+                     [class.is-invalid]="hasValidationError('password')"
+                     name="password"
+                     [(ngModel)]="newUser.password"
+                     (input)="onFieldChange('password')"
+                     required
+                     placeholder="Minimum 6 characters">
+              <div class="invalid-feedback" *ngIf="hasValidationError('password')">
+                {{ getValidationError('password') }}
+              </div>
+              <div class="form-text" *ngIf="!hasValidationError('password')">Minimum 6 characters</div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Role</label>
+              <select class="form-select" name="role" [(ngModel)]="newUser.role" required>
+                <option value="ROLE_EMPLOYEE">Employee</option>
+                <option value="ROLE_APPROVER">Approver</option>
+                <option value="ROLE_SECURITY">Security</option>
+              </select>
+            </div>
+            <!-- Department field removed for Tenant Admin dashboard -->
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Joining Date *</label>
+              <input type="date" class="form-control" name="joiningDate" [(ngModel)]="newUser.joiningDate" required
+                     [max]="maxDate">
+              <div class="form-text">Employee's joining date</div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Contact Number</label>
+              <input type="tel"
+                     class="form-control"
+                     [class.is-invalid]="hasValidationError('contact')"
+                     name="contact"
+                     [(ngModel)]="newUser.contact"
+                     (input)="onFieldChange('contact')"
+                     placeholder="e.g., +1234567890 or (123) 456-7890">
+              <div class="invalid-feedback" *ngIf="hasValidationError('contact')">
+                {{ getValidationError('contact') }}
+              </div>
+              <div class="form-text" *ngIf="!hasValidationError('contact')">
+                Optional. Formats: +1234567890, 1234567890, or (123) 456-7890
+              </div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Gender</label>
+              <select class="form-select" name="gender" [(ngModel)]="newUser.gender">
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="col-12 mb-3">
+              <label class="form-label">Address</label>
+              <textarea class="form-control" name="address" [(ngModel)]="newUser.address" rows="2" placeholder="Enter full address"></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-info btn-sm" (click)="debugForm()">Debug Form</button>
+            <button type="button" class="btn btn-success btn-sm" (click)="showFormData()">Show Form Data</button>
+            <button type="button" class="btn btn-warning btn-sm" (click)="testCreateUser()">Create with Form Data</button>
+            <button type="button" class="btn btn-dark btn-sm" (click)="testBackend()">Test Backend</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary" [disabled]="!userForm.valid || isSubmitting">
+              <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+              {{ isSubmitting ? 'Creating...' : 'Create User' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,27 @@
+<div *ngIf="profile">
+  <h3>My Profile</h3>
+  <div class="card">
+    <div class="card-body">
+      <p><strong>Name:</strong> {{ profile.name }}</p>
+      <p><strong>Unique ID:</strong> {{ profile.uniqueId }}</p>
+      <!-- Department field removed for Super Admin and Tenant Admin -->
+      <p *ngIf="!isSuperAdminOrTenantAdmin()"><strong>Department:</strong> {{ profile.department }}</p>
+      <hr>
+      <form (ngSubmit)="onUpdateProfile()">
+        <div class="mb-3">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-control" [(ngModel)]="editableProfile.email" name="email">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Contact</label>
+          <input type="text" class="form-control" [(ngModel)]="editableProfile.contact" name="contact">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Address</label>
+          <textarea class="form-control" [(ngModel)]="editableProfile.address" name="address"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Update Profile</button>
+      </form>
+    </div>
+  </div>
+</div>

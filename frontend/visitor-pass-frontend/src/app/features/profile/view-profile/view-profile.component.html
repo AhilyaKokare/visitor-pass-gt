@@ -1,0 +1,27 @@
+<div class="container mt-4" *ngIf="profile; else loading">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>My Profile</h3>
+    <a routerLink="/profile/edit" class="btn btn-outline-primary">Edit Profile</a>
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6">
+          <p><strong>Name:</strong> {{ profile.name }}</p>
+          <p><strong>Unique ID:</strong> {{ profile.uniqueId }}</p>
+          <p><strong>Role:</strong> {{ profile.role.replace('ROLE_', '') | titlecase }}</p>
+          <!-- Department field removed for Super Admin and Tenant Admin -->
+          <p *ngIf="!isSuperAdminOrTenantAdmin()"><strong>Department:</strong> {{ profile.department || 'N/A' }}</p>
+        </div>
+        <div class="col-md-6">
+          <p><strong>Email:</strong> {{ profile.email }}</p>
+          <p><strong>Contact:</strong> {{ profile.contact || 'N/A' }}</p>
+          <p><strong>Address:</strong> {{ profile.address || 'N/A' }}</p>
+          <!-- Joining Date field removed for Super Admin only -->
+          <p *ngIf="!isSuperAdmin()"><strong>Joining Date:</strong> {{ profile.joiningDate | date:'longDate' }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<ng-template #loading><app-loading-spinner></app-loading-spinner></ng-template>

@@ -1,0 +1,65 @@
+/*
+* ... (all your Bootstrap @import and variable overrides remain at the top) ...
+*/
+$primary: #003366;
+$secondary: #6c757d;
+$success: #198754;
+$custom-colors: (
+  "primary-dark": #003366,
+  "primary-light": #e6f0ff
+);
+@import "bootstrap/scss/functions";
+@import "bootstrap/scss/variables";
+$theme-colors: map-merge($theme-colors, $custom-colors);
+@import "bootstrap/scss/bootstrap";
+
+
+// --- Your Custom Global Styles Can Go Below ---
+
+// VVV --- THIS IS THE FIX --- VVV
+// Make the main application layout component the root for global styles.
+app-main-layout {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+
+  // Styles that previously applied to the body now apply only within the main layout
+  .page-background {
+    background-color: #f8f9fa;
+    width: 100%;
+  }
+
+  #content {
+    width: 100%;
+    padding: 1rem 2rem;
+    min-height: 100vh;
+  }
+
+  .card {
+    border: 0;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
+  }
+
+  .table-hover tbody tr:hover {
+    background-color: rgba($primary, 0.05);
+  }
+
+  // Custom styles for the dashboard cards
+  .card.border-start {
+      border-width: 0 0 0 0.25rem !important;
+  }
+  .border-start-primary { border-left-color: $primary !important; }
+  .border-start-info { border-left-color: $info !important; }
+  .border-start-success { border-left-color: $success !important; }
+  .border-start-warning { border-left-color: $warning !important; }
+
+  .text-xs {
+      font-size: 0.8rem;
+  }
+  .fw-bold {
+      font-weight: 700 !important;
+  }
+  .text-gray-800 {
+      color: #5a5c69;
+  }
+}

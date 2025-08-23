@@ -1,0 +1,15 @@
+// FILE: frontend/visitor-pass-frontend/src/app/layout/main-layout/main-layout.component.scss
+
+// The special :host selector targets the component's own tag (<app-main-layout>)
+:host {
+  display: flex;          // 1. Turn the <app-main-layout> itself into a flex container.
+  width: 100%;            // 2. Make it take up the full width of the browser.
+  min-height: 100vh;      // 3. Make it at least as tall as the browser window.
+}
+
+// Now we style the direct children of the :host
+#content {
+  flex-grow: 1;           // 4. Tell the #content div to grow and fill all remaining space.
+  padding: 2rem;          // 5. Add some consistent padding to the content area.
+  overflow-y: auto;       // 6. Ensure only the content area scrolls if it's too long, not the whole page.
+}

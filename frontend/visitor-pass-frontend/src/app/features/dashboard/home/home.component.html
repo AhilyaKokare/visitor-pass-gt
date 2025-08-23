@@ -1,0 +1,18 @@
+<div class="container mt-4" *ngIf="user">
+  <div class="card text-center">
+    <div class="card-header">
+      <h3>Welcome to the Visitor Pass Management System</h3>
+    </div>
+    <div class="card-body">
+      <h5 class="card-title">Hello, {{ user.name }}!</h5>
+      <p class="card-text">
+        Your assigned role is: <strong>{{ user.role.replace('ROLE_', '') | titlecase }}</strong>.<br>
+        Use the menu on the left to navigate to your available actions.
+      </p>
+      <a routerLink="/profile" class="btn btn-primary">View My Profile</a>
+    </div>
+    <div class="card-footer text-muted">
+      System Time: {{ currentTime | date:'medium' }}
+    </div>
+  </div>
+</div>

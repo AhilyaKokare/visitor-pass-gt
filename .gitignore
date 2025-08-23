@@ -1,0 +1,34 @@
+# =========================================
+# IDE files and OS files
+# =========================================
+.idea/
+*.iml
+*.iws
+.DS_Store
+Thumbs.db
+
+# =========================================
+# Java / Maven specific
+# =========================================
+# Compiled output for ALL backend services
+backend/**/target/
+
+# Secrets files for ALL backend services
+backend/**/*.env
+
+# Log files
+*.log
+
+# =========================================
+# Node.js / Angular specific
+# =========================================
+# Dependency directories for frontend
+frontend/**/node_modules/
+
+# Build output for frontend
+frontend/**/dist/
+frontend/**/.angular/
+
+# Secrets file for frontend
+frontend/**/*.env
+```    This powerful `.gitignore` uses wildcards (`**`) to apply the rules correctly to the sub-projects.

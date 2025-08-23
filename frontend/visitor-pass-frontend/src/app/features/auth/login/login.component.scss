@@ -1,0 +1,59 @@
+// Import animate.css for pre-built animations
+@import 'animate.css/animate.min.css';
+
+// Keyframes for our custom slide-in animation
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.login-container {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden; // Prevents scrollbars during animation
+}
+
+// Left side panel with the gradient and text
+.info-panel {
+  background: linear-gradient(135deg, #0d6efd, #0d3b6f); // Primary blue gradient
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  // Apply our custom animation
+  animation: slideInLeft 0.8s ease-out;
+}
+
+// Right side panel with the form
+.form-panel {
+  padding: 2rem;
+  background-color: #f8f9fa; // A light grey background
+}
+
+.form-content {
+  max-width: 400px;
+}
+
+.card {
+  border: none;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+// Style the button for a more modern look
+.btn-primary {
+  padding: 0.75rem;
+  font-weight: bold;
+  transition: all 0.2s ease-in-out; // Smooth transition for hover effects
+
+  &:hover {
+    transform: translateY(-2px); // Slight lift on hover
+    box-shadow: 0 4px 15px rgba(13, 110, 253, 0.4); // Add a glow on hover
+  }
+}

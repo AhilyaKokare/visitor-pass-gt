@@ -1,0 +1,91 @@
+<div class="container mt-4">
+  <h3>My Pass Request History</h3>
+  <p>A log of all visitor passes you have requested. Click on a row to see more details.</p>
+
+  <div *ngIf="isLoading; else content">
+    <app-loading-spinner></app-loading-spinner>
+  </div>
+
+  <ng-template #content>
+    <div class="table-responsive">
+      <table class="table table-striped table-hover">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Visitor Name</th>
+            <th>Purpose of Visit</th>
+            <th>Visit Date & Time</th>
+            <th>Status</th>
+            <th>Pass Code</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let pass of passHistoryPage?.content; let i = index"
+              (click)="viewDetails(pass)"
+              data-bs-toggle="modal"
+              data-bs-target="#passDetailsModal"
+              style="cursor: pointer;"
+              [ngSwitch]="pass.status">
+            
+            <td>{{ (currentPage * pageSize) + i + 1 }}</td>
+            <td>{{ pass.visitorName }}</td>
+            <td>{{ pass.purpose }}</td>
+            <td>{{ pass.visitDateTime | date:'medium' }}</td>
+            <td>
+              <span *ngSwitchCase="'PENDING'" class="badge bg-warning text-dark">Pending</span>
+              <span *ngSwitchCase="'APPROVED'" class="badge bg-primary">Approved</span>
+              <span *ngSwitchCase="'REJECTED'" class="badge bg-danger">Rejected</span>
+              <span *ngSwitchCase="'CHECKED_IN'" class="badge bg-info text-dark">Checked-In</span>
+              <span *ngSwitchCase="'CHECKED_OUT'" class="badge bg-success">Completed</span>
+              <span *ngSwitchCase="'EXPIRED'" class="badge bg-secondary">Expired</span>
+            </td>
+            <td>{{ pass.passCode || 'N/A' }}</td>
+          </tr>
+          <tr *ngIf="!isLoading && passHistoryPage?.empty">
+            <td colspan="6" class="text-center">You have not requested any passes yet.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <app-pagination [page]="passHistoryPage" (pageChange)="onPageChange($event)"></app-pagination>
+  </ng-template>
+</div>
+
+<!-- VVV THIS IS THE CORRECTED MODAL TAG VVV -->
+<!-- Note that the invalid '...' attribute is gone. -->
+<div class="modal fade" id="passDetailsModal" tabindex="-1" aria-labelledby="passDetailsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="passDetailsModalLabel">Visitor Pass Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" *ngIf="selectedPass">
+        <!-- ... modal content ... -->
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <p><strong>Visitor:</strong><br>{{ selectedPass.visitorName }}</p>
+            <p><strong>Email:</strong><br>{{ selectedPass.visitorEmail }}</p>
+            <p><strong>Phone:</strong><br>{{ selectedPass.visitorPhone }}</p>
+          </div>
+          <div class="col-md-6 mb-3">
+            <p><strong>Visit Time:</strong><br>{{ selectedPass.visitDateTime | date:'full' }}</p>
+            <p><strong>Status:</strong><br>
+                <span class="badge" [ngClass]="{
+                  'bg-warning text-dark': selectedPass.status === 'PENDING',
+                  'bg-primary': selectedPass.status === 'APPROVED',
+                  'bg-danger': selectedPass.status === 'REJECTED',
+                  'bg-info text-dark': selectedPass.status === 'CHECKED_IN',
+                  'bg-success': selectedPass.status === 'CHECKED_OUT',
+                  'bg-secondary': selectedPass.status === 'EXPIRED'
+                }">
+                {{ selectedPass.status }}
+              </span>
+            </p>
+            <p><strong>Requested By:</strong><br>{{ selectedPass.createdByEmployeeName }}</p>
+          </div>
+          <div class="col-12 border-top pt-3">
+            <p><strong>Purpose of Visit:</strong><br>{{ selectedPass.purpose }}</p>
+          </div>
+   

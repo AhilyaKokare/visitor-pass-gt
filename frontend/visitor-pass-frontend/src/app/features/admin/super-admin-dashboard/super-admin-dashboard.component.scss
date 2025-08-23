@@ -1,0 +1,65 @@
+.card.border-left-primary {
+  border-left: 0.25rem solid var(--bs-primary);
+}
+.card.border-left-success {
+  border-left: 0.25rem solid var(--bs-success);
+}
+.card.border-left-info {
+  border-left: 0.25rem solid var(--bs-info);
+}
+.card.border-left-warning {
+  border-left: 0.25rem solid var(--bs-warning);
+}
+.text-gray-300 {
+  color: #dddfeb;
+}
+.text-gray-800 {
+    color: #5a5c69;
+}
+.text-xs {
+    font-size: 0.7rem;
+}
+.font-weight-bold {
+    font-weight: 700;
+}
+
+// Additional styles for pagination and delete functionality
+.btn-danger {
+  background-color: #dc3545;
+  border-color: #dc3545;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.btn-danger:hover {
+  background-color: #c82333;
+  border-color: #bd2130;
+}
+
+.pagination {
+  margin-bottom: 0;
+}
+
+.pagination .page-link {
+  color: #007bff;
+  border-color: #dee2e6;
+}
+
+.pagination .page-item.active .page-link {
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+.pagination .page-item.disabled .page-link {
+  color: #6c757d;
+  background-color: #fff;
+  border-color: #dee2e6;
+}
+
+.table-responsive {
+  border-radius: 0.375rem;
+}
+
+.text-muted {
+  font-size: 0.875rem;
+}

@@ -1,0 +1,42 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container-fluid">
+    <a class="navbar-brand" routerLink="/dashboard">Visitor Pass System</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0" *ngIf="currentUser$ | async as user">
+        <!-- Super Admin Links -->
+        <li class="nav-item" *ngIf="user.role === 'ROLE_SUPER_ADMIN'">
+          <a class="nav-link" routerLink="/super-admin/dashboard">Tenant Dashboard</a>
+        </li>
+        <!-- Tenant Admin Links -->
+        <li class="nav-item" *ngIf="user.role === 'ROLE_TENANT_ADMIN'">
+          <a class="nav-link" routerLink="/tenant-admin/dashboard">User Management</a>
+        </li>
+        <!-- Employee Links -->
+        <li class="nav-item" *ngIf="user.role === 'ROLE_EMPLOYEE' || user.role === 'ROLE_TENANT_ADMIN'">
+          <a class="nav-link" routerLink="/passes/create">Create Pass</a>
+        </li>
+        <li class="nav-item" *ngIf="user.role === 'ROLE_EMPLOYEE' || user.role === 'ROLE_TENANT_ADMIN'">
+          <a class="nav-link" routerLink="/passes/history">My History</a>
+        </li>
+        <!-- Approver Links -->
+        <li class="nav-item" *ngIf="user.role === 'ROLE_APPROVER' || user.role === 'ROLE_TENANT_ADMIN'">
+          <a class="nav-link" routerLink="/passes/approve">Approval Queue</a>
+        </li>
+        <!-- Security Links -->
+        <li class="nav-item" *ngIf="user.role === 'ROLE_SECURITY' || user.role === 'ROLE_TENANT_ADMIN'">
+          <a class="nav-link" routerLink="/security/dashboard">Security Dashboard</a>
+        </li>
+      </ul>
+      <div class="d-flex" *ngIf="currentUser$ | async as user; else loginLink">
+        <a class="nav-link text-light me-3" routerLink="/profile">Welcome, {{ user.sub }}</a>
+        <button class="btn btn-outline-light" (click)="logout()">Logout</button>
+      </div>
+      <ng-template #loginLink>
+        <a class="btn btn-outline-light" routerLink="/login">Login</a>
+      </ng-template>
+    </div>
+  </div>
+</nav>

@@ -1,0 +1,77 @@
+<div class="container mt-4">
+  <h3>Security Dashboard - Today's Visitors</h3>
+
+  <!-- Search Section -->
+  <div class="card mb-4">
+    <div class="card-header fw-bold">Search for a Visitor Pass</div>
+    <div class="card-body">
+      <form (ngSubmit)="onSearch()">
+        <div class="input-group">
+          <input type="text" class="form-control" placeholder="Enter Visitor Pass Code..." name="passCode" [(ngModel)]="searchPassCode">
+          <button class="btn btn-outline-primary" type="submit" [disabled]="!searchPassCode">
+            <span *ngIf="isSearching" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            {{ isSearching ? 'Searching...' : 'Search' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Searched Pass Result -->
+  <div *ngIf="searchedPass" class="card bg-light mb-4">
+    <div class="card-header">
+      Search Result for Pass Code: <strong>{{ searchedPass.passCode }}</strong>
+    </div>
+    <div class="card-body">
+      <p><strong>Visitor:</strong> {{ searchedPass.visitorName }}</p>
+      <p><strong>Host:</strong> {{ searchedPass.createdByEmployeeName }}</p>
+      <p><strong>Status:</strong> <span class="badge" [ngClass]="getStatusClass(searchedPass.status)">{{ searchedPass.status }}</span></p>
+      <div>
+        <button *ngIf="searchedPass.status === 'APPROVED'" class="btn btn-success me-2" (click)="checkIn(searchedPass.id)">Check-In</button>
+        <button *ngIf="searchedPass.status === 'CHECKED_IN'" class="btn btn-warning" (click)="checkOut(searchedPass.id)">Check-Out</button>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Visitor Lists -->
+  <div class="row">
+    <div class="col-md-6">
+      <h4>Approved for Entry ({{ approvedVisitors.length }})</h4>
+      <div *ngIf="isLoading; else approvedList">
+        <app-loading-spinner></app-loading-spinner>
+      </div>
+      <ng-template #approvedList>
+        <ul class="list-group">
+          <li *ngFor="let visitor of approvedVisitors" class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+              <strong>{{ visitor.visitorName }}</strong><br>
+              <small>Pass Code: {{ visitor.passCode }} | Host: {{ visitor.employeeHostName }}</small>
+            </div>
+            <button class="btn btn-success btn-sm" (click)="checkIn(visitor.passId)">Check-In</button>
+          </li>
+          <li *ngIf="!isLoading && approvedVisitors.length === 0" class="list-group-item text-center">No visitors waiting for check-in.</li>
+        </ul>
+      </ng-template>
+    </div>
+    <div class="col-md-6">
+      <h4>Currently On-Site ({{ checkedInVisitors.length }})</h4>
+      <div *ngIf="isLoading; else checkedInList">
+         <app-loading-spinner></app-loading-spinner>
+      </div>
+      <ng-template #checkedInList>
+        <ul class="list-group">
+          <li *ngFor="let visitor of checkedInVisitors" class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+              <strong>{{ visitor.visitorName }}</strong><br>
+              <small>Pass Code: {{ visitor.passCode }} | Host: {{ visitor.employeeHostName }}</small>
+            </div>
+            <button class="btn btn-warning btn-sm" (click)="checkOut(visitor.passId)">Check-Out</button>
+          </li>
+          <li *ngIf="!isLoading && checkedInVisitors.length === 0" class="list-group-item text-center">No visitors currently on-site.</li>
+        </ul>
+      </ng-template>
+    </div>
+  </div>
+</div>

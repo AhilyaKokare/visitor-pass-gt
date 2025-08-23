@@ -1,0 +1,111 @@
+<div class="container mt-4">
+  <div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+      <h4>Create New Visitor Pass</h4>
+    </div>
+    <div class="card-body">
+      <form (ngSubmit)="onCreatePass()" #passForm="ngForm">
+        <div class="row">
+          <!-- Visitor's Full Name -->
+          <div class="col-md-6 mb-3">
+            <label for="visitorName" class="form-label">Visitor's Full Name</label>
+            <input
+              type="text"
+              class="form-control"
+              id="visitorName"
+              name="visitorName"
+              [(ngModel)]="passData.visitorName"
+              #visitorName="ngModel"
+              required
+              [class.is-invalid]="visitorName.invalid && visitorName.touched"
+            />
+            <div *ngIf="visitorName.invalid && visitorName.touched" class="invalid-feedback">
+              Visitor name is required.
+            </div>
+          </div>
+
+          <!-- Visitor's Email -->
+          <div class="col-md-6 mb-3">
+            <label for="visitorEmail" class="form-label">Visitor's Email</label>
+            <input
+              type="email"
+              class="form-control"
+              id="visitorEmail"
+              name="visitorEmail"
+              [(ngModel)]="passData.visitorEmail"
+              #visitorEmail="ngModel"
+              required
+              email
+              [class.is-invalid]="visitorEmail.invalid && visitorEmail.touched"
+            />
+            <div *ngIf="visitorEmail.errors?.['required'] && visitorEmail.touched" class="invalid-feedback">
+              Visitor email is required.
+            </div>
+            <div *ngIf="visitorEmail.errors?.['email'] && visitorEmail.touched" class="invalid-feedback">
+              Please enter a valid email address.
+            </div>
+          </div>
+
+          <!-- Visitor's Phone -->
+          <div class="col-md-6 mb-3">
+            <label for="visitorPhone" class="form-label">Visitor's Phone Number</label>
+            <input
+              type="text"
+              class="form-control"
+              id="visitorPhone"
+              name="visitorPhone"
+              [(ngModel)]="passData.visitorPhone"
+              #visitorPhone="ngModel"
+              required
+              [class.is-invalid]="visitorPhone.invalid && visitorPhone.touched"
+            />
+            <div *ngIf="visitorPhone.invalid && visitorPhone.touched" class="invalid-feedback">
+              Visitor phone number is required.
+            </div>
+          </div>
+
+          <!-- Date and Time of Visit -->
+          <div class="col-md-6 mb-3">
+            <label for="visitDateTime" class="form-label">Date and Time of Visit</label>
+            <input
+              type="datetime-local"
+              class="form-control"
+              id="visitDateTime"
+              name="visitDateTime"
+              [(ngModel)]="passData.visitDateTime"
+              #visitDateTime="ngModel"
+              required
+              [class.is-invalid]="visitDateTime.invalid && visitDateTime.touched"
+            />
+             <div *ngIf="visitDateTime.invalid && visitDateTime.touched" class="invalid-feedback">
+              Visit date and time are required.
+            </div>
+          </div>
+          
+          <!-- Purpose of Visit -->
+          <div class="col-12 mb-3">
+            <label for="purpose" class="form-label">Purpose of Visit</label>
+            <textarea
+              class="form-control"
+              id="purpose"
+              name="purpose"
+              rows="3"
+              [(ngModel)]="passData.purpose"
+              #purpose="ngModel"
+              required
+              [class.is-invalid]="purpose.invalid && purpose.touched"
+            ></textarea>
+            <div *ngIf="purpose.invalid && purpose.touched" class="invalid-feedback">
+              Purpose of visit is required.
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" [disabled]="!passForm.form.valid || isSubmitting">
+          <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+          {{ isSubmitting ? 'Submitting...' : 'Submit Request' }}
+        </button>
+      </form>
+    </div>
+  </div>
+</div>

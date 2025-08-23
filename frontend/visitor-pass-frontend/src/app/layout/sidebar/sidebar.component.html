@@ -1,0 +1,54 @@
+<nav id="sidebar" class="d-flex flex-column bg-primary-dark text-white p-3">
+  <div class="sidebar-header mb-4 text-center">
+    <h4 class="fw-bold">VISITOR PASS</h4>
+    <hr>
+  </div>
+
+  <ul class="nav nav-pills flex-column mb-auto" *ngIf="currentUser$ | async as user">
+    <li class="nav-item">
+        <a class="nav-link text-white" routerLink="/home" routerLinkActive="active"><i class="bi bi-house-door-fill me-2"></i>Home</a>
+    </li>
+
+    <!-- Role-Based Sections -->
+    <ng-container *ngIf="user.role === 'ROLE_SUPER_ADMIN'">
+        <li class="nav-item-header mt-3">SYSTEM ADMIN</li>
+        <li><a class="nav-link text-white" routerLink="/super-admin/dashboard" routerLinkActive="active"><i class="bi bi-building-gear me-2"></i>Manage Locations</a></li>
+    </ng-container>
+
+    <ng-container *ngIf="user.role === 'ROLE_TENANT_ADMIN'">
+        <li class="nav-item-header mt-3">LOCATION ADMIN</li>
+        <li><a class="nav-link text-white" routerLink="/tenant-admin/users" routerLinkActive="active"><i class="bi bi-people-fill me-2"></i>Manage Users</a></li>
+    </ng-container>
+
+    <ng-container *ngIf="user.role === 'ROLE_EMPLOYEE' || user.role === 'ROLE_TENANT_ADMIN'">
+        <li class="nav-item-header mt-3">EMPLOYEE ACTIONS</li>
+        <li><a class="nav-link text-white" routerLink="/passes/create" routerLinkActive="active"><i class="bi bi-plus-square-dotted me-2"></i>Create New Pass</a></li>
+        <!-- VVV THIS IS THE FIX VVV -->
+        <li><a class="nav-link text-white" routerLink="/passes/my-pass-history" routerLinkActive="active"><i class="bi bi-clock-history me-2"></i>Pass History</a></li>
+    </ng-container>
+
+    <ng-container *ngIf="user.role === 'ROLE_APPROVER' || user.role === 'ROLE_TENANT_ADMIN'">
+       <li class="nav-item-header mt-3">APPROVALS</li>
+       <li><a class="nav-link text-white" routerLink="/passes/approve" routerLinkActive="active"><i class="bi bi-check2-circle me-2"></i>Approval Queue</a></li>
+    </ng-container>
+
+    <ng-container *ngIf="user.role === 'ROLE_SECURITY' || user.role === 'ROLE_TENANT_ADMIN'">
+       <li class="nav-item-header mt-3">SECURITY DESK</li>
+       <li><a class="nav-link text-white" routerLink="/security/dashboard" routerLinkActive="active"><i class="bi bi-shield-check me-2"></i>Security Dashboard</a></li>
+    </ng-container>
+  </ul>
+
+  <hr>
+<div class="dropdown" *ngIf="currentUser$ | async as user">
+  <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+    <i class="bi bi-person-circle fs-4 me-2"></i>
+    <!-- VVV THIS IS THE CHANGE VVV -->
+    <strong class="sidebar-username">{{ user.sub }}</strong>
+  </a>
+  <ul class="dropdown-menu dropdown-menu-dark text-small shadow">
+    <li><a class="dropdown-item" routerLink="/profile"><i class="bi bi-person-fill me-2"></i>My Profile</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" (click)="logout()" style="cursor: pointer;"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+  </ul>
+</div>
+</nav>

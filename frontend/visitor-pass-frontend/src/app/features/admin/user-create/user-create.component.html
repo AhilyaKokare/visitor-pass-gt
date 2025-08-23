@@ -1,0 +1,58 @@
+<div class="container mt-4">
+  <div class="card">
+    <div class="card-header">
+      <h4>Create New User</h4>
+    </div>
+    <div class="card-body">
+      <form (ngSubmit)="onCreateUser()" #userForm="ngForm">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Full Name</label>
+            <input type="text" class="form-control" name="name" [(ngModel)]="newUser.name" required>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control" name="email" [(ngModel)]="newUser.email" required email>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Password</label>
+            <input type="password" class="form-control" name="password" [(ngModel)]="newUser.password" required minlength="8">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Role</label>
+            <select class="form-select" name="role" [(ngModel)]="newUser.role" required>
+              <option selected value="ROLE_EMPLOYEE">Employee</option>
+              <option value="ROLE_APPROVER">Approver</option>
+              <option value="ROLE_SECURITY">Security</option>
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Department</label>
+            <input type="text" class="form-control" name="department" [(ngModel)]="newUser.department">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Gender</label>
+            <input type="text" class="form-control" name="gender" [(ngModel)]="newUser.gender">
+          </div>
+           <div class="col-md-6 mb-3">
+            <label class="form-label">Contact</label>
+            <input type="text" class="form-control" name="contact" [(ngModel)]="newUser.contact">
+          </div>
+           <div class="col-md-6 mb-3">
+            <label class="form-label">Joining Date</label>
+            <input type="date" class="form-control" name="joiningDate" [(ngModel)]="newUser.joiningDate" required>
+          </div>
+          <div class="col-12 mb-3">
+            <label class="form-label">Address</label>
+            <textarea class="form-control" name="address" [(ngModel)]="newUser.address"></textarea>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" [disabled]="!userForm.valid || isSubmitting">
+           <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+           {{ isSubmitting ? 'Creating...' : 'Create User' }}
+        </button>
+        <a routerLink="/tenant-admin/users" class="btn btn-secondary ms-2">Cancel</a>
+      </form>
+    </div>
+  </div>
+</div>

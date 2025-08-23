@@ -1,0 +1,15 @@
+/* You can add global styles to this file, and also import other style files */
+
+body {
+  background-color: #f4f7f6; /* A light grey background for the whole app */
+}
+
+/* Add some padding to the main container to push content down from the navbar */
+.container {
+  padding-top: 20px;
+  padding-bottom: 50px;
+}
+
+.card {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}

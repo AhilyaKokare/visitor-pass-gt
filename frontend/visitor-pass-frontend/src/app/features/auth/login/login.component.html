@@ -1,0 +1,49 @@
+<div class="login-container">
+  <div class="row g-0 h-100">
+    <!-- Left Side: Information Panel -->
+    <div class="col-lg-6 d-none d-lg-flex info-panel animate__animated animate__slideInLeft">
+      <div class="info-content text-center text-white">
+        <i class="bi bi-shield-check display-1 mb-4"></i>
+        <h1 class="fw-bold">Visitor Pass Management</h1>
+        <p class="lead mt-3">Secure, efficient, and centralized visitor management for all your locations.</p>
+      </div>
+    </div>
+
+    <!-- Right Side: Login Form Panel -->
+    <div class="col-lg-6 col-md-12 form-panel d-flex align-items-center justify-content-center">
+      <div class="form-content w-100">
+        <div class="card p-4 mx-auto animate__animated animate__fadeInUp">
+          <h3 class="text-center mb-4">Welcome Back</h3>
+          <form (ngSubmit)="onLogin()" #loginForm="ngForm">
+            
+            <!-- VVV THIS IS THE FIX VVV -->
+            <!-- The input is of type="email" but it binds to credentials.username -->
+            <div class="form-floating mb-3 animate__animated animate__fadeInUp" style="animation-delay: 0.1s;">
+              <input type="email" class="form-control" id="email" name="email" placeholder="name@example.com" [(ngModel)]="credentials.username" required email>
+              <label for="email">Email address</label>
+            </div>
+
+            <!-- Password Input with Floating Label -->
+            <div class="form-floating mb-3 animate__animated animate__fadeInUp" style="animation-delay: 0.2s;">
+              <input type="password" class="form-control" id="password" name="password" placeholder="Password" [(ngModel)]="credentials.password" required>
+              <label for="password">Password</label>
+            </div>
+
+            <!-- Login Button -->
+            <button type="submit" class="btn btn-primary w-100 btn-lg mt-3 animate__animated animate__fadeInUp" [disabled]="!loginForm.valid || isLoggingIn" style="animation-delay: 0.3s;">
+              <span *ngIf="isLoggingIn" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+              {{ isLoggingIn ? 'Logging In...' : 'Login' }}
+            </button>
+
+            <!-- Forgot Password Link -->
+            <div class="text-center mt-3 animate__animated animate__fadeInUp" style="animation-delay: 0.4s;">
+              <a routerLink="/forgot-password" class="text-decoration-none">
+                Forgot your password?
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

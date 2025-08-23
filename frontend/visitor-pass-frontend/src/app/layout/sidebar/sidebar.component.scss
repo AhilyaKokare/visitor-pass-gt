@@ -1,0 +1,39 @@
+#sidebar {
+  min-width: 280px;
+  max-width: 280px;
+  min-height: 100vh; // This is good, we will keep it.
+  position: sticky;   // VVV NEW: Fixes the scrolling issue
+  top: 0;             // VVV NEW: Fixes the scrolling issue
+  align-self: flex-start; // VVV NEW: Works with sticky positioning
+}
+
+.nav-link.active {
+  background-color: #0d6efd;
+}
+
+.nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.nav-item-header {
+  padding: 10px 10px 5px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #88a1b5;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.dropdown-toggle {
+  outline: 0;
+}
+
+// VVV THIS IS THE NEW RULE FOR THE ELLIPSIS VVV
+.sidebar-username {
+  white-space: nowrap;      // 1. Don't allow the text to wrap to a new line.
+  overflow: hidden;         // 2. Hide any part of the text that overflows its container.
+  text-overflow: ellipsis;  // 3. Add '...' to the end of the hidden text.
+  display: inline-block;    // Needed for overflow to work correctly.
+  max-width: 150px;         // Adjust this width as needed to fit your design.
+  vertical-align: middle;   // Helps align the text nicely with the icon.
+}
