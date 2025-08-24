@@ -1,41 +1,71 @@
 <div class="container mt-4">
-  <h3>Pass Approval Queue</h3>
-  <p>Review pending visitor pass requests for your location.</p>
-
-  <div *ngIf="isLoading; else content" class="text-center">
-    <app-loading-spinner></app-loading-spinner>
-  </div>
-
-  <ng-template #content>
-    <div class="table-responsive">
-      <table class="table table-striped table-hover">
-        <thead>
-          <tr>
-            <th>Visitor Name</th>
-            <th>Purpose of Visit</th> <!-- <-- ADDED THIS HEADER -->
-            <th>Requested By</th>
-            <th>Visit Date</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let pass of pendingPasses">
-            <td>{{ pass.visitorName }}</td>
-            <td>{{ pass.purpose }}</td> <!-- <-- ADDED THIS DATA CELL -->
-            <td>{{ pass.createdByEmployeeName }}</td>
-            <td>{{ pass.visitDateTime | date:'medium' }}</td>
-            <td><span class="badge bg-warning text-dark">{{ pass.status }}</span></td>
-            <td>
-              <button class="btn btn-success btn-sm me-2" (click)="approve(pass.id)">Approve</button>
-              <button class="btn btn-danger btn-sm" (click)="reject(pass.id)">Reject</button>
-            </td>
-          </tr>
-          <tr *ngIf="pendingPasses.length === 0">
-            <td colspan="6" class="text-center">No pending requests in the queue.</td>
-          </tr>
-        </tbody>
-      </table>
+  <div class="card shadow-sm">
+    <div class="card-header bg-white">
+      <h3 class="mb-0">Pass Approval Queue</h3>
+      <p class="text-muted mb-0">Review and action pending visitor pass requests for your location.</p>
     </div>
-  </ng-template>
+    <div class="card-body">
+      <div *ngIf="isLoading; else content" class="text-center py-5">
+        <app-loading-spinner></app-loading-spinner>
+      </div>
+
+      <ng-template #content>
+        <div class="table-responsive">
+          <table class="table table-striped table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Visitor Name</th>
+                <th>Purpose of Visit</th>
+                <th>Requested By</th>
+                <th>Visit Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Loop over the 'content' array of the Page object -->
+              <tr *ngFor="let pass of passPageDetails?.content" [ngSwitch]="pass.status">
+                <td>{{ pass.visitorName }}</td>
+                <td>{{ pass.purpose }}</td>
+                <td>{{ pass.createdByEmployeeName }}</td>
+                <td>{{ pass.visitDateTime | date:'medium' }}</td>
+                <td>
+                  <!-- Use ngSwitch to show different badges for each status -->
+                  <span *ngSwitchCase="'PENDING'" class="badge bg-warning text-dark">Pending</span>
+                  <span *ngSwitchCase="'APPROVED'" class="badge bg-primary">Approved</span>
+                  <span *ngSwitchCase="'REJECTED'" class="badge bg-danger">Rejected</span>
+                  <span *ngSwitchCase="'CHECKED_IN'" class="badge bg-info text-dark">Checked-In</span>
+                  <span *ngSwitchCase="'CHECKED_OUT'" class="badge bg-success">Completed</span>
+                  <span *ngSwitchCase="'EXPIRED'" class="badge bg-secondary">Expired</span>
+                </td>
+                <td>
+                  <!-- Use *ngIf to only show buttons for PENDING passes -->
+                  <div *ngIf="pass.status === 'PENDING'">
+                    <button class="btn btn-success btn-sm me-2" (click)="approve(pass.id)" title="Approve Pass">
+                      <i class="bi bi-check-lg"></i> Approve
+                    </button>
+                    <button class="btn btn-danger btn-sm" (click)="reject(pass.id)" title="Reject Pass">
+                      <i class="bi bi-x-lg"></i> Reject
+                    </button>
+                  </div>
+                  <!-- Show a disabled state for other statuses -->
+                  <div *ngIf="pass.status !== 'PENDING'">
+                    <span class="text-muted small fst-italic">No actions available</span>
+                  </div>
+                </td>
+              </tr>
+              <!-- Update the empty state check -->
+              <tr *ngIf="!isLoading && passPageDetails?.empty">
+                <td colspan="6" class="text-center py-4">No passes found for this location.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Add the reusable pagination component -->
+        <app-pagination [page]="passPageDetails" (pageChange)="onPageChange($event)"></app-pagination>
+
+      </ng-template>
+    </div>
+  </div>
 </div>

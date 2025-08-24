@@ -2,12 +2,6 @@
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h3 class="mb-0">Super Admin Analytics</h3>
     <div>
-      <!-- <button type="button" class="btn btn-info me-2" (click)="testAuthentication()">
-        <i class="bi bi-shield-check me-1"></i>Test Auth
-      </button>
-      <button type="button" class="btn btn-warning me-2" (click)="testBackendStatus()">
-        <i class="bi bi-server me-1"></i>Test Backend
-      </button> -->
       <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTenantModal">
         <i class="bi bi-plus-circle me-2"></i>Create New Location
       </button>
@@ -15,7 +9,7 @@
   </div>
 
   <div *ngIf="!isLoading && dashboardData; else loadingTemplate">
-    
+
     <!-- Global Stats Cards -->
     <div class="row mb-4">
         <!-- Card 1 -->
@@ -75,7 +69,7 @@
           </div>
         </div>
       </div>
-  
+
     <!-- Location Activity Table -->
     <div class="card shadow">
         <div class="card-header fw-bold">
@@ -215,6 +209,12 @@
                 <input type="tel" class="form-control" name="adminContact" [(ngModel)]="newTenantData.adminContact"
                        placeholder="e.g., +1234567890 or (123) 456-7890">
               </div>
+
+              <!-- **** THIS IS THE MODIFIED/ADDED SECTION **** -->
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Admin's Joining Date</label>
+                <input type="date" class="form-control" name="adminJoiningDate" [(ngModel)]="newTenantData.adminJoiningDate" required>
+              </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label">Admin's Gender</label>
                 <select class="form-select" name="adminGender" [(ngModel)]="newTenantData.adminGender">
@@ -224,6 +224,8 @@
                   <option value="Other">Other</option>
                 </select>
               </div>
+              <!-- **** END OF MODIFIED/ADDED SECTION **** -->
+
               <div class="col-12 mb-3">
                 <label class="form-label">Admin's Address</label>
                 <textarea class="form-control" name="adminAddress" [(ngModel)]="newTenantData.adminAddress"
@@ -287,7 +289,6 @@
               <input type="tel" class="form-control" name="contact" [(ngModel)]="newAdminData.contact"
                      placeholder="+1234567890">
             </div>
-            <!-- Department and Joining Date fields removed for Super Admin dashboard -->
           </div>
         </form>
       </div>

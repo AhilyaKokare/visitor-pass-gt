@@ -38,40 +38,64 @@
   <!-- Visitor Lists -->
   <div class="row">
     <div class="col-md-6">
-      <h4>Approved for Entry ({{ approvedVisitors.length }})</h4>
-      <div *ngIf="isLoading; else approvedList">
-        <app-loading-spinner></app-loading-spinner>
+      <div class="card">
+        <div class="card-header">
+          <!-- FIX: Use totalElements from the Page object -->
+          <h4>Approved for Entry ({{ approvedVisitorsPage?.totalElements || 0 }})</h4>
+        </div>
+        <div class="card-body">
+          <div *ngIf="isLoading; else approvedList">
+            <app-loading-spinner></app-loading-spinner>
+          </div>
+          <ng-template #approvedList>
+            <ul class="list-group list-group-flush">
+              <!-- FIX: Loop over the .content of the Page object -->
+              <li *ngFor="let visitor of approvedVisitorsPage?.content" class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <strong>{{ visitor.visitorName }}</strong><br>
+                  <small class="text-muted">Pass: {{ visitor.passCode }} | Host: {{ visitor.employeeHostName }}</small>
+                </div>
+                <button class="btn btn-success btn-sm" (click)="checkIn(visitor.passId)">Check-In</button>
+              </li>
+              <!-- FIX: Check the .empty property of the Page object -->
+              <li *ngIf="!isLoading && approvedVisitorsPage?.empty" class="list-group-item text-center text-muted">
+                No visitors waiting for check-in.
+              </li>
+            </ul>
+            <app-pagination [page]="approvedVisitorsPage" (pageChange)="onApprovedPageChange($event)"></app-pagination>
+          </ng-template>
+        </div>
       </div>
-      <ng-template #approvedList>
-        <ul class="list-group">
-          <li *ngFor="let visitor of approvedVisitors" class="list-group-item d-flex justify-content-between align-items-center">
-            <div>
-              <strong>{{ visitor.visitorName }}</strong><br>
-              <small>Pass Code: {{ visitor.passCode }} | Host: {{ visitor.employeeHostName }}</small>
-            </div>
-            <button class="btn btn-success btn-sm" (click)="checkIn(visitor.passId)">Check-In</button>
-          </li>
-          <li *ngIf="!isLoading && approvedVisitors.length === 0" class="list-group-item text-center">No visitors waiting for check-in.</li>
-        </ul>
-      </ng-template>
     </div>
     <div class="col-md-6">
-      <h4>Currently On-Site ({{ checkedInVisitors.length }})</h4>
-      <div *ngIf="isLoading; else checkedInList">
-         <app-loading-spinner></app-loading-spinner>
+      <div class="card">
+        <div class="card-header">
+          <!-- FIX: Use totalElements from the Page object -->
+          <h4>Currently On-Site ({{ checkedInVisitorsPage?.totalElements || 0 }})</h4>
+        </div>
+        <div class="card-body">
+          <div *ngIf="isLoading; else checkedInList">
+             <app-loading-spinner></app-loading-spinner>
+          </div>
+          <ng-template #checkedInList>
+            <ul class="list-group list-group-flush">
+              <!-- FIX: Loop over the .content of the Page object -->
+              <li *ngFor="let visitor of checkedInVisitorsPage?.content" class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <strong>{{ visitor.visitorName }}</strong><br>
+                  <small class="text-muted">Pass: {{ visitor.passCode }} | Host: {{ visitor.employeeHostName }}</small>
+                </div>
+                <button class="btn btn-warning btn-sm" (click)="checkOut(visitor.passId)">Check-Out</button>
+              </li>
+              <!-- FIX: Check the .empty property of the Page object -->
+              <li *ngIf="!isLoading && checkedInVisitorsPage?.empty" class="list-group-item text-center text-muted">
+                No visitors currently on-site.
+              </li>
+            </ul>
+            <app-pagination [page]="checkedInVisitorsPage" (pageChange)="onOnSitePageChange($event)"></app-pagination>
+          </ng-template>
+        </div>
       </div>
-      <ng-template #checkedInList>
-        <ul class="list-group">
-          <li *ngFor="let visitor of checkedInVisitors" class="list-group-item d-flex justify-content-between align-items-center">
-            <div>
-              <strong>{{ visitor.visitorName }}</strong><br>
-              <small>Pass Code: {{ visitor.passCode }} | Host: {{ visitor.employeeHostName }}</small>
-            </div>
-            <button class="btn btn-warning btn-sm" (click)="checkOut(visitor.passId)">Check-Out</button>
-          </li>
-          <li *ngIf="!isLoading && checkedInVisitors.length === 0" class="list-group-item text-center">No visitors currently on-site.</li>
-        </ul>
-      </ng-template>
     </div>
   </div>
 </div>

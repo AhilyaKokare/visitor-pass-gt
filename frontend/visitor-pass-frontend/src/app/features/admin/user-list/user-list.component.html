@@ -5,14 +5,13 @@
       <button type="button" class="btn btn-secondary me-2" (click)="loadUsers()">
         <i class="bi bi-arrow-clockwise"></i> Refresh List
       </button>
-      <!-- This button opens the modal defined below -->
       <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
         <i class="bi bi-plus-circle"></i> Create New User
       </button>
     </div>
   </div>
 
-  <div *ngIf="isLoading; else userTable">
+  <div *ngIf="isLoading; else userTable" class="text-center py-5">
     <app-loading-spinner></app-loading-spinner>
   </div>
 
@@ -24,17 +23,16 @@
             <th>Name</th>
             <th>Email</th>
             <th>Role</th>
-            <!-- Department column removed for Tenant Admin dashboard -->
             <th>Status</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-         <tr *ngFor="let user of users">
+         <!-- **** THIS IS THE DEFINITIVE FIX **** -->
+         <tr *ngFor="let user of userPageDetails?.content">
             <td>{{ user.name }}</td>
             <td>{{ user.email }}</td>
             <td>{{ user.role.replace('ROLE_', '') | titlecase }}</td>
-            <!-- Department column removed for Tenant Admin dashboard -->
             <td>
               <span class="badge" [ngClass]="user.isActive ? 'bg-success' : 'bg-secondary'">
                 {{ user.isActive ? 'Active' : 'Inactive' }}
@@ -47,16 +45,17 @@
             </td>
           </tr>
           <tr *ngIf="!isLoading && userPageDetails?.empty">
-            <td colspan="5" class="text-center">No users found for this location. Click "Create New User" to begin.</td>
+            <td colspan="5" class="text-center py-4">No users found for this location. Click "Create New User" to begin.</td>
           </tr>
         </tbody>
       </table>
     </div>
+    <!-- The pagination component now works correctly because its [page] input is the single source of truth -->
     <app-pagination [page]="userPageDetails" (pageChange)="onPageChange($event)"></app-pagination>
   </ng-template>
 </div>
 
-<!-- Create User Modal -->
+<!-- Create User Modal (This part remains the same) -->
 <div class="modal fade" id="createUserModal" tabindex="-1" aria-labelledby="createUserModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
@@ -120,7 +119,6 @@
                 <option value="ROLE_SECURITY">Security</option>
               </select>
             </div>
-            <!-- Department field removed for Tenant Admin dashboard -->
             <div class="col-md-6 mb-3">
               <label class="form-label">Joining Date *</label>
               <input type="date" class="form-control" name="joiningDate" [(ngModel)]="newUser.joiningDate" required
@@ -158,10 +156,6 @@
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-info btn-sm" (click)="debugForm()">Debug Form</button>
-            <button type="button" class="btn btn-success btn-sm" (click)="showFormData()">Show Form Data</button>
-            <button type="button" class="btn btn-warning btn-sm" (click)="testCreateUser()">Create with Form Data</button>
-            <button type="button" class="btn btn-dark btn-sm" (click)="testBackend()">Test Backend</button>
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
             <button type="submit" class="btn btn-primary" [disabled]="!userForm.valid || isSubmitting">
               <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
