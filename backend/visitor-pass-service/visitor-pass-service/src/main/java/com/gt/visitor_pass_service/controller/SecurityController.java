@@ -1,7 +1,7 @@
 package com.gt.visitor_pass_service.controller;
 
 import com.gt.visitor_pass_service.config.security.JwtTokenProvider;
-import com.gt.visitor_pass_service.dto.SecurityDashboardResponse;
+import com.gt.visitor_pass_service.dto.SecurityDashboardPageDTO;
 import com.gt.visitor_pass_service.dto.VisitorPassResponse;
 import com.gt.visitor_pass_service.service.TenantSecurityService;
 import com.gt.visitor_pass_service.service.VisitorPassService;
@@ -9,11 +9,12 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/tenants/{tenantId}/security")
@@ -32,18 +33,20 @@ public class SecurityController {
 
     @GetMapping("/dashboard/today")
     @PreAuthorize("hasAnyRole('SECURITY', 'TENANT_ADMIN')")
-    @Operation(summary = "Get Security Dashboard", description = "Retrieves a list of all visitors who are approved or have already checked in for the current day.")
-    public ResponseEntity<List<SecurityDashboardResponse>> getTodaysVisitors(
+    @Operation(summary = "Get Security Dashboard (Paginated)", description = "Retrieves paginated lists of visitors who are approved or have already checked in for the current day. Use qualifiers 'approved' and 'onSite' for pagination params (e.g., approved_page=0&onSite_page=1).")
+    public ResponseEntity<SecurityDashboardPageDTO> getTodaysVisitorsPaginated(
             @Parameter(description = "ID of the tenant") @PathVariable Long tenantId,
+            @Parameter(hidden = true) @Qualifier("approved") @PageableDefault(size = 5, sort = "visitDateTime") Pageable approvedPageable,
+            @Parameter(hidden = true) @Qualifier("onSite") @PageableDefault(size = 5, sort = "visitDateTime") Pageable onSitePageable,
             HttpServletRequest request) {
         tenantSecurityService.checkTenantAccess(request.getHeader("Authorization"), tenantId);
-        List<SecurityDashboardResponse> visitors = visitorPassService.getTodaysVisitors(tenantId);
+        SecurityDashboardPageDTO visitors = visitorPassService.getTodaysVisitorsPaginated(tenantId, approvedPageable, onSitePageable);
         return ResponseEntity.ok(visitors);
     }
 
     @GetMapping("/passes/search")
     @PreAuthorize("hasAnyRole('SECURITY', 'TENANT_ADMIN')")
-    @Operation(summary = "Search for a Pass by Code", description = "Finds a specific visitor pass using its unique pass code.")
+    @Operation(summary = "Search for a Pass by Code")
     public ResponseEntity<VisitorPassResponse> findPassByCode(
             @Parameter(description = "ID of the tenant") @PathVariable Long tenantId,
             @Parameter(description = "The 8-character unique pass code") @RequestParam String passCode,
@@ -55,7 +58,7 @@ public class SecurityController {
 
     @PostMapping("/check-in/{passId}")
     @PreAuthorize("hasAnyRole('SECURITY', 'TENANT_ADMIN')")
-    @Operation(summary = "Check-In a Visitor", description = "Marks an 'APPROVED' pass as 'CHECKED_IN'.")
+    @Operation(summary = "Check-In a Visitor")
     public ResponseEntity<VisitorPassResponse> checkInVisitor(
             @Parameter(description = "ID of the tenant") @PathVariable Long tenantId,
             @Parameter(description = "ID of the pass to check-in") @PathVariable Long passId,
@@ -67,7 +70,7 @@ public class SecurityController {
 
     @PostMapping("/check-out/{passId}")
     @PreAuthorize("hasAnyRole('SECURITY', 'TENANT_ADMIN')")
-    @Operation(summary = "Check-Out a Visitor", description = "Marks a 'CHECKED_IN' pass as 'CHECKED_OUT'.")
+    @Operation(summary = "Check-Out a Visitor")
     public ResponseEntity<VisitorPassResponse> checkOutVisitor(
             @Parameter(description = "ID of the tenant") @PathVariable Long tenantId,
             @Parameter(description = "ID of the pass to check-out") @PathVariable Long passId,

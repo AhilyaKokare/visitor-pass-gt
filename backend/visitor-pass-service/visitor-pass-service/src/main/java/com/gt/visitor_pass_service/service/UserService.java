@@ -1,5 +1,6 @@
 package com.gt.visitor_pass_service.service;
 
+import com.gt.visitor_pass_service.config.RabbitMQConfig;
 import com.gt.visitor_pass_service.dto.*;
 import com.gt.visitor_pass_service.exception.AccessDeniedException;
 import com.gt.visitor_pass_service.exception.ResourceNotFoundException;
@@ -7,28 +8,24 @@ import com.gt.visitor_pass_service.model.Tenant;
 import com.gt.visitor_pass_service.model.User;
 import com.gt.visitor_pass_service.repository.TenantRepository;
 import com.gt.visitor_pass_service.repository.UserRepository;
+import com.gt.visitor_pass_service.util.ValidationUtil;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import com.gt.visitor_pass_service.dto.UserCreatedEvent;
-import com.gt.visitor_pass_service.config.RabbitMQConfig;
-import com.gt.visitor_pass_service.exception.ResourceNotFoundException;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
-import java.util.Optional;
-import java.util.UUID;
-import com.gt.visitor_pass_service.util.ValidationUtil;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import java.util.Map;
 
 @Service
-public class UserService { // Renamed from AdminService
+public class UserService {
 
     private final TenantRepository tenantRepository;
     private final UserRepository userRepository;
@@ -37,7 +34,6 @@ public class UserService { // Renamed from AdminService
     private final RabbitTemplate rabbitTemplate;
     private final EmailService emailService;
 
-
     public UserService(TenantRepository tenantRepository, UserRepository userRepository, PasswordEncoder passwordEncoder, AuditService auditService, RabbitTemplate rabbitTemplate, EmailService emailService) {
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
@@ -45,6 +41,11 @@ public class UserService { // Renamed from AdminService
         this.auditService = auditService;
         this.rabbitTemplate = rabbitTemplate;
         this.emailService = emailService;
+    }
+
+    public Page<UserResponse> getUsersByTenant(Long tenantId, Pageable pageable) {
+        Page<User> userPage = userRepository.findByTenantId(tenantId, pageable);
+        return userPage.map(this::mapToUserResponse);
     }
 
     @Transactional
@@ -289,6 +290,7 @@ public class UserService { // Renamed from AdminService
                 .adminEmail(admin != null ? admin.getEmail() : "N/A")
                 .adminContact(admin != null ? admin.getContact() : "N/A")
                 .adminIsActive(admin != null && admin.isActive())
+                .adminJoiningDate(admin != null ? admin.getJoiningDate() : null) // <-- THIS IS THE FIX
                 .build();
     }
 

@@ -1,0 +1,17 @@
+package com.gt.visitor_pass_service.dto;
+
+import lombok.Builder;
+import lombok.Data;
+import org.springframework.data.domain.Page;
+
+/**
+ * DTO to hold the paginated data for the Security Dashboard.
+ * It contains two separate pages: one for visitors approved for entry,
+ * and one for visitors currently on-site.
+ */
+@Data
+@Builder
+public class SecurityDashboardPageDTO {
+    private Page<SecurityDashboardResponse> approvedForEntry;
+    private Page<SecurityDashboardResponse> currentlyOnSite;
+}

@@ -9,15 +9,13 @@ import com.gt.visitor_pass_service.model.enums.PassStatus;
 import com.gt.visitor_pass_service.repository.UserRepository;
 import com.gt.visitor_pass_service.repository.VisitorPassRepository;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class VisitorPassService {
@@ -56,6 +54,7 @@ public class VisitorPassService {
         VisitorPass savedPass = passRepository.save(pass);
         auditService.logEvent("PASS_CREATED", creator.getId(), tenantId, savedPass.getId());
 
+        // This can be expanded to publish a PassCreatedEvent if needed
         return mapToResponse(savedPass);
     }
 
@@ -73,25 +72,20 @@ public class VisitorPassService {
         VisitorPass savedPass = passRepository.save(pass);
         auditService.logEvent("PASS_APPROVED", approver.getId(), pass.getTenant().getId(), savedPass.getId());
 
-        // VVV THIS IS THE FIX VVV
-        // The event now includes the visitor's email, pass code, and visit date/time
         PassApprovedEvent event = new PassApprovedEvent(
                 savedPass.getId(),
                 savedPass.getTenant().getId(),
                 savedPass.getVisitorName(),
                 savedPass.getVisitorEmail(),
                 savedPass.getCreatedBy().getEmail(),
-                savedPass.getPassCode(), // <-- ADDED
-                savedPass.getVisitDateTime() // <-- ADDED
+                savedPass.getPassCode(),
+                savedPass.getVisitDateTime()
         );
         rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, RabbitMQConfig.ROUTING_KEY_APPROVED, event);
 
         return mapToResponse(savedPass);
     }
 
-    /**
-     * Rejects a visitor pass request.
-     */
     public VisitorPassResponse rejectPass(Long passId, String approverEmail, String reason) {
         User approver = userRepository.findByEmail(approverEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", approverEmail));
@@ -117,7 +111,6 @@ public class VisitorPassService {
         return mapToResponse(savedPass);
     }
 
-    // Method for Security to check-in a visitor
     public VisitorPassResponse checkIn(Long passId) {
         VisitorPass pass = passRepository.findById(passId)
                 .orElseThrow(() -> new ResourceNotFoundException("VisitorPass", "id", passId));
@@ -174,18 +167,34 @@ public class VisitorPassService {
         return passPage.map(this::mapToResponse);
     }
 
-    public List<SecurityDashboardResponse> getTodaysVisitors(Long tenantId) {
-        return passRepository.findTodaysVisitorsByTenant(tenantId, LocalDate.now())
-                .stream()
-                .map(pass -> new SecurityDashboardResponse(
-                        pass.getId(),
-                        pass.getVisitorName(),
-                        pass.getPassCode(),
-                        pass.getStatus().name(),
-                        pass.getVisitDateTime(),
-                        pass.getCreatedBy().getName()
-                ))
-                .collect(Collectors.toList());
+    // --- THIS IS THE NEW PAGINATED METHOD ---
+    public SecurityDashboardPageDTO getTodaysVisitorsPaginated(Long tenantId, Pageable approvedPageable, Pageable onSitePageable) {
+        LocalDate today = LocalDate.now();
+
+        // Fetch paginated list of APPROVED visitors
+        Page<VisitorPass> approvedPasses = passRepository.findTodaysVisitorsByTenantAndStatus(tenantId, today, PassStatus.APPROVED, approvedPageable);
+        Page<SecurityDashboardResponse> approvedResponse = approvedPasses.map(this::mapToSecurityDashboardResponse);
+
+        // Fetch paginated list of CHECKED_IN visitors
+        Page<VisitorPass> onSitePasses = passRepository.findTodaysVisitorsByTenantAndStatus(tenantId, today, PassStatus.CHECKED_IN, onSitePageable);
+        Page<SecurityDashboardResponse> onSiteResponse = onSitePasses.map(this::mapToSecurityDashboardResponse);
+
+        return SecurityDashboardPageDTO.builder()
+                .approvedForEntry(approvedResponse)
+                .currentlyOnSite(onSiteResponse)
+                .build();
+    }
+
+    // --- NEW HELPER METHOD ---
+    private SecurityDashboardResponse mapToSecurityDashboardResponse(VisitorPass pass) {
+        return new SecurityDashboardResponse(
+                pass.getId(),
+                pass.getVisitorName(),
+                pass.getPassCode(),
+                pass.getStatus().name(),
+                pass.getVisitDateTime(),
+                pass.getCreatedBy().getName()
+        );
     }
 
     public VisitorPassResponse mapToResponse(VisitorPass pass) {
@@ -210,6 +219,4 @@ public class VisitorPassService {
         
         return response;
     }
-
-    
 }
