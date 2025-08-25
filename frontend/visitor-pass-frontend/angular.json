@@ -22,6 +22,7 @@
             "browser": "src/main.ts",
 
             "polyfills": [
+                "src/polyfills.ts",
               "zone.js"
             ],
 
@@ -83,6 +84,7 @@
           "builder": "@angular/build:karma",
           "options": {
             "polyfills": [
+              "src/polyfills.ts",
               "zone.js",
               "zone.js/testing"
             ],
