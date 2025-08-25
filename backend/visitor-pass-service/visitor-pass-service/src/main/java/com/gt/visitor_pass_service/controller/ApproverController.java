@@ -6,11 +6,12 @@ import com.gt.visitor_pass_service.service.TenantSecurityService;
 import com.gt.visitor_pass_service.service.VisitorPassService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -18,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/tenants/{tenantId}/approvals")
-@Tag(name = "5. Approver", description = "APIs for Approvers to manage pending visitor pass requests.")
+// This class name should be ApproverController, not a typo
 public class ApproverController {
 
     private final VisitorPassService visitorPassService;
@@ -29,17 +30,33 @@ public class ApproverController {
         this.tenantSecurityService = tenantSecurityService;
     }
 
+    // VVV --- THIS IS THE CRITICAL METHOD --- VVV
+    // Ensure it exists exactly like this.
+   @GetMapping
+@PreAuthorize("hasAnyAuthority('ROLE_APPROVER', 'ROLE_TENANT_ADMIN')")
+@Operation(summary = "Get Passes by Status", description = "Retrieves a paginated list of visitor passes with a specific status.")
+public ResponseEntity<Page<VisitorPassResponse>> getPassesByStatus(
+        @PathVariable Long tenantId,
+        @RequestParam String status,
+        // Manually request page and size instead of using Pageable
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "10") int size,
+        HttpServletRequest servletRequest) {
+    
+    tenantSecurityService.checkTenantAccess(servletRequest.getHeader("Authorization"), tenantId);
+    
+    // Manually create the Pageable object
+    Pageable pageable = PageRequest.of(page, size);
+    
+    Page<VisitorPassResponse> response = visitorPassService.getPassesByStatus(tenantId, status, pageable);
+    return ResponseEntity.ok(response);
+}
+
     @PostMapping("/{passId}/approve")
-    @PreAuthorize("hasAnyRole('APPROVER', 'TENANT_ADMIN')")
-    @Operation(summary = "Approve a Visitor Pass", description = "Changes the status of a 'PENDING' pass to 'APPROVED'.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Pass approved successfully"),
-            @ApiResponse(responseCode = "404", description = "Pass not found"),
-            @ApiResponse(responseCode = "403", description = "Forbidden")
-    })
+    @PreAuthorize("hasAnyAuthority('ROLE_APPROVER', 'ROLE_TENANT_ADMIN')")
     public ResponseEntity<VisitorPassResponse> approvePass(
-            @Parameter(description = "ID of the tenant") @PathVariable Long tenantId,
-            @Parameter(description = "ID of the pass to approve") @PathVariable Long passId,
+            @PathVariable Long tenantId,
+            @PathVariable Long passId,
             Authentication authentication,
             HttpServletRequest servletRequest) {
         tenantSecurityService.checkTenantAccess(servletRequest.getHeader("Authorization"), tenantId);
@@ -49,17 +66,10 @@ public class ApproverController {
     }
 
     @PostMapping("/{passId}/reject")
-    @PreAuthorize("hasAnyRole('APPROVER', 'TENANT_ADMIN')")
-    @Operation(summary = "Reject a Visitor Pass", description = "Changes the status of a 'PENDING' pass to 'REJECTED'. A reason is required.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Pass rejected successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid request data (e.g., missing reason)"),
-            @ApiResponse(responseCode = "404", description = "Pass not found"),
-            @ApiResponse(responseCode = "403", description = "Forbidden")
-    })
+    @PreAuthorize("hasAnyAuthority('ROLE_APPROVER', 'ROLE_TENANT_ADMIN')")
     public ResponseEntity<VisitorPassResponse> rejectPass(
-            @Parameter(description = "ID of the tenant") @PathVariable Long tenantId,
-            @Parameter(description = "ID of the pass to reject") @PathVariable Long passId,
+            @PathVariable Long tenantId,
+            @PathVariable Long passId,
             @Valid @RequestBody RejectPassRequest request,
             Authentication authentication,
             HttpServletRequest servletRequest) {

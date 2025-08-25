@@ -4,6 +4,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,6 +20,9 @@ import java.io.IOException;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    // VVV --- ADDING LOGGER --- VVV
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+
     @Autowired
     private JwtTokenProvider tokenProvider;
 
@@ -28,28 +33,49 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
+        
+        // VVV --- ADDED DETAILED LOGGING --- VVV
+        log.debug("--- JWT Authentication Filter Activated for URI: {} ---", request.getRequestURI());
+
         try {
             String jwt = getJwtFromRequest(request);
+            log.debug("Step 1: Extracted JWT from request. Token is null? {}", (jwt == null));
+            if (jwt != null) {
+                log.debug("Token: {}...", jwt.substring(0, Math.min(jwt.length(), 20))); // Log first 20 chars
+            }
+
 
             if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
+                log.debug("Step 2: Token is valid text and passed validation.");
+
                 String username = tokenProvider.getUsernameFromJWT(jwt);
+                log.debug("Step 3: Extracted username '{}' from token.", username);
 
                 UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                log.debug("Step 4: Loaded UserDetails for username '{}'. User found? {}", username, (userDetails != null));
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                if (userDetails != null) {
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities());
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    log.debug("Step 5: Authentication successful. Set security context for user '{}'.", username);
+                }
+            } else {
+                log.debug("Step 2 FAILED: JWT was null, empty, or invalid.");
             }
         } catch (Exception ex) {
-            logger.error("Could not set user authentication in security context", ex);
+            log.error("!!! Could not set user authentication in security context !!!", ex);
         }
 
+        log.debug("--- JWT Filter finished. Passing to next filter. ---");
         filterChain.doFilter(request, response);
     }
 
     private String getJwtFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
+        log.debug("Received Authorization Header: {}", bearerToken);
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7);
         }

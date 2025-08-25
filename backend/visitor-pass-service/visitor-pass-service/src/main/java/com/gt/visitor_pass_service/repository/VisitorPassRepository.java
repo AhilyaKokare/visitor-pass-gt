@@ -15,13 +15,18 @@ import java.util.Optional;
 
 public interface VisitorPassRepository extends JpaRepository<VisitorPass, Long> {
     
-
+    Page<VisitorPass> findByTenantIdAndStatus(Long tenantId, PassStatus status, Pageable pageable);
     Page<VisitorPass> findByTenantId(Long tenantId, Pageable pageable);
 
     Page<VisitorPass> findByCreatedById(Long userId, Pageable pageable);
 
     Optional<VisitorPass> findByTenantIdAndPassCode(Long tenantId, String passCode);
 
+
+    // Add this to VisitorPassRepository.java
+@Query("SELECT vp FROM VisitorPass vp WHERE vp.tenant.id = :tenantId AND DATE(vp.visitDateTime) = :date AND vp.status IN :statuses")
+Page<VisitorPass> findTodaysVisitorsByTenantAndStatusIn(Long tenantId, LocalDate date, List<PassStatus> statuses, Pageable pageable);
+   
     // VVV THIS IS THE FIX for PassExpiryService VVV
     // This query now correctly uses the PassStatus enum and compares the full date and time.
     @Query("SELECT vp FROM VisitorPass vp WHERE vp.status = :status AND vp.visitDateTime < :now")

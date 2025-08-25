@@ -45,19 +45,18 @@ public class TenantAdminController {
         return ResponseEntity.ok(dashboardData);
     }
 
-    @GetMapping("/users")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
-    @Operation(summary = "Get All Users in Tenant (Paginated)",
-            description = "Retrieves a paginated list of all users within the Tenant Admin's assigned location. " +
-                    "Supports sorting and pagination via query parameters (e.g., ?page=0&size=10&sort=name,asc)")
-    public ResponseEntity<Page<UserResponse>> getUsersInTenant(
-            @Parameter(description = "ID of the tenant to manage") @PathVariable Long tenantId,
-            @PageableDefault(size = 10, sort = "name") Pageable pageable, // <-- ADD THIS
-            HttpServletRequest servletRequest) {
-        tenantSecurityService.checkTenantAccess(servletRequest.getHeader("Authorization"), tenantId);
-        Page<UserResponse> users = userService.getUsersByTenant(tenantId, pageable);
-        return ResponseEntity.ok(users);
-    }
+   // Inside TenantAdminController.java
+@GetMapping("/users")
+@PreAuthorize("hasAuthority('ROLE_TENANT_ADMIN')")
+public ResponseEntity<Page<UserResponse>> getUsersInTenant(
+        @PathVariable Long tenantId,
+        Pageable pageable,
+        HttpServletRequest servletRequest) {
+    tenantSecurityService.checkTenantAccess(servletRequest.getHeader("Authorization"), tenantId);
+    // VVV THIS IS THE FIX VVV
+    Page<UserResponse> users = userService.getUsersByTenant(tenantId, pageable);
+    return ResponseEntity.ok(users);
+}
 
     @PostMapping("/users")
     @PreAuthorize("hasRole('TENANT_ADMIN')")
