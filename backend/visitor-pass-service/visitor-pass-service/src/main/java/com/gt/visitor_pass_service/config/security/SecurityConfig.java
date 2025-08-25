@@ -51,36 +51,43 @@ public class SecurityConfig {
         return authenticationConfiguration.getAuthenticationManager();
     }
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .cors(Customizer.withDefaults())
-                .csrf(csrf -> csrf.disable())
-                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        // --- PUBLIC ENDPOINTS ---
-                        .requestMatchers(SWAGGER_WHITELIST).permitAll()
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Allow all CORS pre-flight requests
-                        .requestMatchers("/api/auth/**").permitAll()
+   // Inside SecurityConfig.java
 
-                        // --- INTERNAL SERVICE ENDPOINTS ---
-                        .requestMatchers("/api/internal/**").hasAuthority("ROLE_INTERNAL_SERVICE") // Use hasAuthority for consistency
+@Bean
+public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    http
+            .cors(Customizer.withDefaults())
+            .csrf(csrf -> csrf.disable())
+            .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                    // --- PUBLIC ENDPOINTS ---
+                    .requestMatchers(SWAGGER_WHITELIST).permitAll()
+                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                    .requestMatchers("/api/auth/**").permitAll()
+                    
+                    // VVV --- THIS IS THE FIX --- VVV
+                    // Allow public access to the WebSocket handshake endpoint
+                    .requestMatchers("/ws/**").permitAll()
+                    // ^^^ --- END OF FIX --- ^^^
 
-                        // VVV --- ROLE-BASED ENDPOINTS (THE FIX) --- VVV
-                        .requestMatchers("/api/tenants/{tenantId}/passes/**").hasAnyAuthority("ROLE_EMPLOYEE", "ROLE_TENANT_ADMIN")
-                        .requestMatchers("/api/tenants/{tenantId}/approvals/**").hasAnyAuthority("ROLE_APPROVER", "ROLE_TENANT_ADMIN")
-                        .requestMatchers("/api/tenants/{tenantId}/security/**").hasAnyAuthority("ROLE_SECURITY", "ROLE_TENANT_ADMIN")
-                        .requestMatchers("/api/tenants/{tenantId}/admin/**").hasAuthority("ROLE_TENANT_ADMIN")
-                        .requestMatchers("/api/super-admin/**").hasAuthority("ROLE_SUPER_ADMIN")
-                        
-                        // Any other request must be authenticated (e.g., /api/profile)
-                        .anyRequest().authenticated()
-                );
+                    // --- INTERNAL SERVICE ENDPOINTS ---
+                    .requestMatchers("/api/internal/**").hasAuthority("ROLE_INTERNAL_SERVICE")
 
-        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-        http.addFilterBefore(internalApiAuthenticationFilter, JwtAuthenticationFilter.class);
+                    // --- ROLE-BASED ENDPOINTS ---
+                    .requestMatchers("/api/tenants/{tenantId}/passes/**").hasAnyAuthority("ROLE_EMPLOYEE", "ROLE_TENANT_ADMIN")
+                    .requestMatchers(HttpMethod.GET, "/api/tenants/{tenantId}/approvals").hasAnyAuthority("ROLE_APPROVER", "ROLE_TENANT_ADMIN")
+                    .requestMatchers(HttpMethod.POST, "/api/tenants/{tenantId}/approvals/**").hasAnyAuthority("ROLE_APPROVER", "ROLE_TENANT_ADMIN")
+                    .requestMatchers("/api/tenants/{tenantId}/security/**").hasAnyAuthority("ROLE_SECURITY", "ROLE_TENANT_ADMIN")
+                    .requestMatchers("/api/tenants/{tenantId}/admin/**").hasAuthority("ROLE_TENANT_ADMIN")
+                    .requestMatchers("/api/super-admin/**").hasAuthority("ROLE_SUPER_ADMIN")
+                    
+                    .anyRequest().authenticated()
+            );
 
-        return http.build();
-    }
+    http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+    http.addFilterBefore(internalApiAuthenticationFilter, JwtAuthenticationFilter.class);
+
+    return http.build();
+}
 }

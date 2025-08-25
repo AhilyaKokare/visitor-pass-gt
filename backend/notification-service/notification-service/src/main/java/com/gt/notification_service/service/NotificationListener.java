@@ -13,6 +13,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+import java.util.LinkedHashMap;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
@@ -101,32 +103,44 @@ public class NotificationListener {
         processEmailNotification(null, event.getNewUserEmail(), subject, body);
     }
 
-    @RabbitListener(queues = "password.reset.queue", errorHandler = "rabbitMQErrorHandler")
-    public void handlePasswordReset(PasswordResetEvent event) {
-        logger.info("Received PasswordResetEvent for user: {}", event.getUserEmail());
+   // Inside NotificationListener.java
 
-        String subject = "Password Reset Request - " + event.getTenantName();
-        String body = String.format(
-                "Hello %s,\n\n" +
-                "We received a request to reset your password for your %s account.\n\n" +
-                "To reset your password, please click the link below:\n" +
-                "%s\n\n" +
-                "This link will expire in 15 minutes for security reasons.\n\n" +
-                "If you did not request this password reset, please ignore this email. " +
-                "Your password will remain unchanged.\n\n" +
-                "For security reasons, please do not share this link with anyone.\n\n" +
-                "Best regards,\n" +
-                "The %s Team\n\n" +
-                "---\n" +
-                "This is an automated message. Please do not reply to this email.",
-                event.getUserName(),
-                event.getTenantName(),
-                event.getResetUrl(),
-                event.getTenantName()
-        );
+@RabbitListener(queues = "password.reset.queue", errorHandler = "rabbitMQErrorHandler")
+public void handlePasswordReset(PasswordResetEvent event) {
+    logger.info("Received PasswordResetEvent for user: {}", event.getUserEmail());
+    String subject = "Your Password Reset Request";
 
-        processEmailNotification(null, event.getUserEmail(), subject, body);
-    }
+    // VVV --- THIS IS THE UPGRADED HTML TEMPLATE LOGIC --- VVV
+    
+    // 1. Create a visually appealing HTML button for the main action.
+    String actionButton = "<a href='" + event.getResetUrl() + "' " +
+                          "style='background-color: #0d6efd; color: white; padding: 12px 25px; " +
+                          "text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;'>" +
+                          "Reset Your Password</a>";
+
+    // 2. Build the different parts of the email content.
+    String intro = "We received a request to reset the password for your account associated with the email: " +
+                   "<strong>" + event.getUserEmail() + "</strong>. " +
+                   "Please click the button below to set a new password.";
+    
+    // This section will contain the button and a security disclaimer.
+    String detailsSection = "<div style='text-align: center; margin: 30px 0;'>" + actionButton + "</div>" +
+                            "<p style='font-size: 12px; color: #888; text-align: center;'>" +
+                            "This link is valid for 15 minutes for security reasons. If you did not request a password reset, " +
+                            "please ignore this email. Your account remains secure.</p>";
+
+    // 3. Call our reusable template builder.
+    String body = createHtmlEmailTemplate(
+        "Password Reset Request",
+        "Hello " + event.getUserName() + ",",
+        intro, 
+        // We are not using the key-value table for this email, so we pass an empty map.
+        java.util.Collections.emptyMap(), 
+        detailsSection
+    );
+
+    processEmailNotification(null, event.getUserEmail(), subject, body);
+}
 
     private void processEmailNotification(Long passId, String recipientAddress, String subject, String body) {
         EmailAuditLog auditLog = new EmailAuditLog();
@@ -156,4 +170,41 @@ public class NotificationListener {
         savedLog.setProcessedAt(LocalDateTime.now());
         emailAuditLogRepository.save(savedLog);
     }
+
+    private String createHtmlEmailTemplate(String title, String heading, String intro, Map<String, String> details, String outro) {
+    StringBuilder detailsHtml = new StringBuilder();
+    if (details != null && !details.isEmpty()) {
+        details.forEach((key, value) -> {
+            detailsHtml.append("<tr><td style='padding: 8px; border-bottom: 1px solid #ddd; background-color: #f9f9f9;'><strong>")
+                       .append(key)
+                       .append(":</strong></td><td style='padding: 8px; border-bottom: 1px solid #ddd;'>")
+                       .append(value)
+                       .append("</td></tr>");
+        });
+    }
+
+    String detailsTable = "";
+    if (detailsHtml.length() > 0) {
+        detailsTable = "<table style='width: 100%; border-collapse: collapse; margin: 20px 0;'>" + detailsHtml.toString() + "</table>";
+    }
+
+    return "<!DOCTYPE html>" +
+           "<html><head><style>" +
+           "body{font-family: Arial, sans-serif; color: #333;}" +
+           ".container{max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);}" +
+           ".header{background-color: #003366; color: white; padding: 10px 20px; text-align: center; border-radius: 8px 8px 0 0;}" +
+           ".content{padding: 20px;}" +
+           ".footer{text-align: center; font-size: 12px; color: #888; margin-top: 20px;}" +
+           "</style></head><body>" +
+           "<div class='container'>" +
+           "<div class='header'><h2>" + title + "</h2></div>" +
+           "<div class='content'>" +
+           "<p><b>" + heading + "</b></p>" +
+           "<p>" + intro + "</p>" +
+           detailsTable + // <-- Use the generated table
+           "<p>" + outro + "</p>" +
+           "</div>" +
+           "<div class='footer'><p>&copy; " + java.time.Year.now().getValue() + " Visitor Pass System</p></div>" +
+           "</div></body></html>";
+}
 }

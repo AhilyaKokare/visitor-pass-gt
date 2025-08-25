@@ -85,15 +85,16 @@ public class VisitorPassService {
 
         // VVV THIS IS THE FIX VVV
         // The event now includes the visitor's email, pass code, and visit date/time
-        PassApprovedEvent event = new PassApprovedEvent(
-                savedPass.getId(),
-                savedPass.getTenant().getId(),
-                savedPass.getVisitorName(),
-                savedPass.getVisitorEmail(),
-                savedPass.getCreatedBy().getEmail(),
-                savedPass.getPassCode(), // <-- ADDED
-                savedPass.getVisitDateTime() // <-- ADDED
-        );
+       PassApprovedEvent event = new PassApprovedEvent(
+            savedPass.getId(),                      // 1. passId
+            savedPass.getTenant().getId(),          // 2. tenantId
+            savedPass.getVisitorName(),             // 3. visitorName
+            savedPass.getVisitorEmail(),            // 4. visitorEmail
+            savedPass.getCreatedBy().getEmail(),    // 5. employeeEmail
+            savedPass.getPassCode(),                // 6. passCode
+            savedPass.getVisitDateTime(),           // 7. visitDateTime
+            savedPass.getCreatedBy().getName()      // 8. employeeName
+                );
         rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, RabbitMQConfig.ROUTING_KEY_APPROVED, event);
 
         return mapToResponse(savedPass);
@@ -117,11 +118,12 @@ public class VisitorPassService {
         auditService.logEvent("PASS_REJECTED", approver.getId(), pass.getTenant().getId(), savedPass.getId());
 
         PassRejectedEvent event = new PassRejectedEvent(
-                savedPass.getId(),
-                savedPass.getVisitorName(),
-                savedPass.getCreatedBy().getEmail(),
-                reason
-        );
+        savedPass.getId(),                  // 1. passId
+        savedPass.getVisitorName(),         // 2. visitorName
+        savedPass.getVisitorEmail(),        // 3. visitorEmail (This was missing)
+        savedPass.getCreatedBy().getEmail(),// 4. employeeEmail
+        reason                              // 5. rejectionReason
+);
         rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, RabbitMQConfig.ROUTING_KEY_REJECTED, event);
 
         return mapToResponse(savedPass);

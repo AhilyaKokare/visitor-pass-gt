@@ -22,12 +22,12 @@
       <table class="table table-striped table-hover">
         <thead>
           <tr>
-            <th>#</th>
+            <th>Sr.no</th>
             <th>Name</th>
             <th>Email</th>
             <th>Role</th>
+            
             <th>Status</th>
-            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -36,11 +36,11 @@
             <td>{{ user.name }}</td>
             <td>{{ user.email }}</td>
             <td>{{ user.role.replace('ROLE_', '') | titlecase }}</td>
-            <td>
+            <!-- <td>
               <span class="badge" [ngClass]="user.isActive ? 'bg-success' : 'bg-secondary'">
                 {{ user.isActive ? 'Active' : 'Inactive' }}
               </span>
-            </td>
+            </td> -->
             <td>
               <button class="btn btn-sm" [ngClass]="user.isActive ? 'btn-warning' : 'btn-success'" (click)="toggleUserStatus(user)">
                 {{ user.isActive ? 'Deactivate' : 'Activate' }}

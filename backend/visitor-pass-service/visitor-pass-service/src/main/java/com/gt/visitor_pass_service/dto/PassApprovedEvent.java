@@ -18,4 +18,6 @@ public class PassApprovedEvent implements Serializable {
     private String employeeEmail;
     private String passCode; // <-- ADDED THIS LINE
     private LocalDateTime visitDateTime; // <-- ADDED THIS LINE
+     private String employeeName; 
+    
 }

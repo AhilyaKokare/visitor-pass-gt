@@ -60,7 +60,7 @@ public class TestController {
 
             System.out.println("Parsed request: " + request);
 
-            UserResponse response = userService.createUser(tenantId, request);
+         UserResponse response = userService.createUser(tenantId, request);
             System.out.println("User created successfully: " + response);
 
             return new ResponseEntity<>(response, HttpStatus.CREATED);

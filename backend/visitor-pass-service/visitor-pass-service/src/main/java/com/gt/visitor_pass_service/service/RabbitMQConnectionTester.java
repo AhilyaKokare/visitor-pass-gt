@@ -18,7 +18,7 @@ public class RabbitMQConnectionTester implements CommandLineRunner {
 
     // We inject the RabbitAdmin and the specific Queue bean we are testing
     public RabbitMQConnectionTester(RabbitAdmin rabbitAdmin,
-                                    @Qualifier("expiredQueue") Queue expiredQueue) {
+                                @Qualifier("rabbitExpiredQueue") Queue expiredQueue) {
         this.rabbitAdmin = rabbitAdmin;
         this.expiredQueue = expiredQueue;
     }
