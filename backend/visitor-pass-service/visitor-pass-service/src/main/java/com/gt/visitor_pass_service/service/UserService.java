@@ -11,7 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-
+import com.gt.visitor_pass_service.dto.UserCreatedEvent;
 import com.gt.visitor_pass_service.config.RabbitMQConfig;
 import com.gt.visitor_pass_service.exception.ResourceNotFoundException;
 import org.springframework.data.domain.Page;
@@ -159,60 +159,89 @@ public class UserService { // Renamed from AdminService
         return createUser(tenantId, request);
     }
 
-    // Inside UserService.java
+    public UserResponse createUser(Long tenantId, CreateUserRequest request) {
+        System.out.println("=== UserService.createUser called ===");
+        System.out.println("Tenant ID: " + tenantId);
+        System.out.println("Request: " + request);
 
-// VVV --- THE METHOD SIGNATURE MUST CHANGE TO ACCEPT THE ADMIN'S EMAIL --- VVV
- @Transactional
-    public UserResponse createUser(Long tenantId, CreateUserRequest request, String adminEmail) {
-        validateEmailUniqueness(request.getEmail(), null);
-        validateMobileUniqueness(request.getContact(), null);
+        try {
+            // Validate email uniqueness across all users (regardless of role or tenant)
+            validateEmailUniqueness(request.getEmail(), null);
 
-        Tenant tenant = tenantRepository.findById(tenantId)
-                .orElseThrow(() -> new ResourceNotFoundException("Tenant", "id", tenantId));
+            // Validate mobile uniqueness and format
+            validateMobileUniqueness(request.getContact(), null);
 
-        User creatingAdmin = userRepository.findByEmail(adminEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("Admin User", "email", adminEmail));
+            Tenant tenant = tenantRepository.findById(tenantId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Tenant", "id", tenantId));
+            System.out.println("Tenant found: " + tenant.getName());
 
-        User user = new User();
-        user.setUniqueId(UUID.randomUUID().toString());
-        user.setName(request.getName());
-        user.setEmail(ValidationUtil.normalizeEmail(request.getEmail()));
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setContact(ValidationUtil.normalizeMobile(request.getContact()));
-        user.setRole(request.getRole());
-        user.setTenant(tenant);
-        user.setActive(true);
-        user.setJoiningDate(request.getJoiningDate() != null ? request.getJoiningDate() : LocalDate.now());
-        user.setAddress(request.getAddress());
-        user.setGender(request.getGender());
-        user.setDepartment(request.getDepartment());
+            User user = new User();
+            // Generate a unique ID for the user
+            user.setUniqueId(UUID.randomUUID().toString());
 
+            user.setName(request.getName());
+            user.setEmail(ValidationUtil.normalizeEmail(request.getEmail()));
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+            user.setContact(ValidationUtil.normalizeMobile(request.getContact()));
+            user.setRole(request.getRole());
+            user.setTenant(tenant);
+            user.setActive(true);
+
+            // Set new fields
+            user.setJoiningDate(request.getJoiningDate() != null ? request.getJoiningDate() : LocalDate.now());
+            user.setAddress(request.getAddress());
+            user.setGender(request.getGender());
+            user.setDepartment(request.getDepartment());
+
+            System.out.println("About to save user: " + user.getEmail());
+            User savedUser = userRepository.save(user);
+            System.out.println("User saved with ID: " + savedUser.getId());
+
+            auditService.logEvent("USER_CREATED", savedUser.getId(), tenantId, null);
+
+            UserCreatedEvent event = new UserCreatedEvent(
+                    savedUser.getName(),
+                    savedUser.getEmail(),
+                    savedUser.getRole(),
+                    tenant.getName(),
+                    "http://localhost:4200/login" // Your frontend login URL
+            );
+
+            rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, RabbitMQConfig.ROUTING_KEY_USER_CREATED, event);
+
+            System.out.println(">>> UserCreatedEvent sent for user: " + savedUser.getEmail());
+
+            UserResponse response = mapToUserResponse(savedUser);
+            System.out.println("Returning response: " + response);
+            return response;
+        } catch (Exception e) {
+            System.err.println("Error in UserService.createUser: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    public Page<UserResponse> getUsersByTenant(Long tenantId, Pageable pageable) {
+        Page<User> userPage = userRepository.findByTenantId(tenantId, pageable);
+        // The .map() function on a Page object automatically converts the content
+        // while preserving the pagination metadata.
+        return userPage.map(this::mapToUserResponse);
+    }
+
+    public UserResponse updateUserStatus(Long userId, Long tenantId, boolean isActive) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+
+        if (user.getTenant() == null || !user.getTenant().getId().equals(tenantId)) {
+            throw new AccessDeniedException("User does not belong to the specified tenant.");
+        }
+
+        user.setActive(isActive);
         User savedUser = userRepository.save(user);
-        auditService.logEvent("USER_CREATED", creatingAdmin.getId(), tenantId, savedUser.getId());
-
-        // This constructor call will be fixed in the next step
-        UserCreatedEvent event = new UserCreatedEvent(
-                savedUser.getName(),
-                savedUser.getEmail(),
-                savedUser.getRole(),
-                tenant.getName(),
-                "http://localhost:4200/login",
-                creatingAdmin.getName()
-        );
-        rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, RabbitMQConfig.ROUTING_KEY_USER_CREATED, event);
-
+        auditService.logEvent(isActive ? "USER_ACTIVATED" : "USER_DEACTIVATED", savedUser.getId(), tenantId, null);
         return mapToUserResponse(savedUser);
     }
-    
-    // VVV --- THIS IS THE FIX FOR THE SECOND ERROR --- VVV
-    // This method now correctly calls the main createUser method with a placeholder admin email
-    public UserResponse createTenantAdmin(Long tenantId, CreateUserRequest request) {
-        request.setRole("ROLE_TENANT_ADMIN");
-        // We assume the system/superadmin is creating this, so a placeholder is acceptable.
-        // In a more complex system, you would pass the actual superadmin's email here.
-        String placeholderSuperAdminEmail = "superadmin@system.com";
-        return createUser(tenantId, request, placeholderSuperAdminEmail);
-    }
+
     // --- NEW Profile Management Functions ---
 
     public UserResponse getCurrentUserProfile(String email) {

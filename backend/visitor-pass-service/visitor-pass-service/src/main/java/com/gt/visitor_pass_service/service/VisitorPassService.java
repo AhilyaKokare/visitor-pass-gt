@@ -12,7 +12,6 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -71,40 +70,35 @@ public class VisitorPassService {
     }
 
     // Method for an Approver to approve a pass
-   @Transactional // <-- Add this annotation to ensure the database is updated before the method returns
-public VisitorPassResponse approvePass(Long passId, String approverEmail) {
-    User approver = userRepository.findByEmail(approverEmail)
-            .orElseThrow(() -> new ResourceNotFoundException("User", "email", approverEmail));
+    public VisitorPassResponse approvePass(Long passId, String approverEmail) {
+        User approver = userRepository.findByEmail(approverEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", approverEmail));
 
-    VisitorPass pass = passRepository.findById(passId)
-            .orElseThrow(() -> new ResourceNotFoundException("VisitorPass", "id", passId));
+        VisitorPass pass = passRepository.findById(passId)
+                .orElseThrow(() -> new ResourceNotFoundException("VisitorPass", "id", passId));
 
-    pass.setStatus(PassStatus.APPROVED);
-    pass.setApprovedBy(approver);
+        pass.setStatus(PassStatus.APPROVED);
+        pass.setApprovedBy(approver);
 
-    VisitorPass savedPass = passRepository.save(pass);
-    auditService.logEvent("PASS_APPROVED", approver.getId(), pass.getTenant().getId(), savedPass.getId());
+        VisitorPass savedPass = passRepository.save(pass);
+        auditService.logEvent("PASS_APPROVED", approver.getId(), pass.getTenant().getId(), savedPass.getId());
 
-    // Send RabbitMQ event for email notifications
-     PassApprovedEvent event = new PassApprovedEvent(
-        savedPass.getId(),                      // 1. passId
-        savedPass.getTenant().getId(),          // 2. tenantId
-        savedPass.getVisitorName(),             // 3. visitorName
-        savedPass.getVisitorEmail(),            // 4. visitorEmail
-        savedPass.getCreatedBy().getEmail(),    // 5. employeeEmail
-        savedPass.getPassCode(),                // 6. passCode
-        savedPass.getVisitDateTime(),           // 7. visitDateTime
-        savedPass.getCreatedBy().getName()      // 8. employeeName
-    );
-    rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, RabbitMQConfig.ROUTING_KEY_APPROVED, event);
+        // VVV THIS IS THE FIX VVV
+        // The event now includes the visitor's email, pass code, and visit date/time
+       PassApprovedEvent event = new PassApprovedEvent(
+            savedPass.getId(),                      // 1. passId
+            savedPass.getTenant().getId(),          // 2. tenantId
+            savedPass.getVisitorName(),             // 3. visitorName
+            savedPass.getVisitorEmail(),            // 4. visitorEmail
+            savedPass.getCreatedBy().getEmail(),    // 5. employeeEmail
+            savedPass.getPassCode(),                // 6. passCode
+            savedPass.getVisitDateTime(),           // 7. visitDateTime
+            savedPass.getCreatedBy().getName()      // 8. employeeName
+                );
+        rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, RabbitMQConfig.ROUTING_KEY_APPROVED, event);
 
-    // VVV --- THIS IS THE FIX --- VVV
-    // Send the real-time update notification AFTER all other operations are done.
-    // We use the tenant ID from the saved pass to ensure we notify the correct dashboard.
-    webSocketUpdateService.notifyDashboardUpdate(savedPass.getTenant().getId());
-
-    return mapToResponse(savedPass);
-}
+        return mapToResponse(savedPass);
+    }
 
     /**
      * Rejects a visitor pass request.
@@ -122,14 +116,14 @@ public VisitorPassResponse approvePass(Long passId, String approverEmail) {
 
         VisitorPass savedPass = passRepository.save(pass);
         auditService.logEvent("PASS_REJECTED", approver.getId(), pass.getTenant().getId(), savedPass.getId());
- // VVV --- THIS IS THE FIX --- VVV
-    PassRejectedEvent event = new PassRejectedEvent(
-            savedPass.getId(),
-            savedPass.getVisitorName(),
-            savedPass.getVisitorEmail(), // <-- ADD THIS
-            savedPass.getCreatedBy().getEmail(),
-            reason
-    );
+
+        PassRejectedEvent event = new PassRejectedEvent(
+        savedPass.getId(),                  // 1. passId
+        savedPass.getVisitorName(),         // 2. visitorName
+        savedPass.getVisitorEmail(),        // 3. visitorEmail (This was missing)
+        savedPass.getCreatedBy().getEmail(),// 4. employeeEmail
+        reason                              // 5. rejectionReason
+);
         rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, RabbitMQConfig.ROUTING_KEY_REJECTED, event);
 
         return mapToResponse(savedPass);

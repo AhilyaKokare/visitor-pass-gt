@@ -122,7 +122,7 @@ public class AuthService {
 
         logger.info("Sending password reset event to RabbitMQ for user: {} with URL: {}", user.getEmail(), resetUrl);
         try {
-            rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, RabbitMQConfig.ROUTING_KEY_PASSWORD_RESET, event);
+           rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, RabbitMQConfig.ROUTING_KEY_PASSWORD_RESET, event);
             logger.info("Password reset event sent successfully to RabbitMQ for user: {}", user.getEmail());
         } catch (Exception e) {
             logger.warn("Failed to send to RabbitMQ, trying direct email for user: {}", user.getEmail(), e);

@@ -17,5 +17,4 @@ public class UserCreatedEvent implements Serializable {
     private String newUserRole;
     private String tenantName;
     private String loginUrl; // URL to the frontend login page
-    private String createdByAdminName;
 }
