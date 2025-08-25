@@ -26,15 +26,24 @@ public class VisitorPassService {
     private final UserRepository userRepository;
     private final RabbitTemplate rabbitTemplate;
     private final AuditService auditService;
+    private final WebSocketUpdateService webSocketUpdateService;
 
-    public VisitorPassService(VisitorPassRepository passRepository,
-                              UserRepository userRepository,
-                              RabbitTemplate rabbitTemplate,
-                              AuditService auditService) {
-        this.passRepository = passRepository;
-        this.userRepository = userRepository;
-        this.rabbitTemplate = rabbitTemplate;
-        this.auditService = auditService;
+   public VisitorPassService(VisitorPassRepository passRepository,
+                          UserRepository userRepository,
+                          RabbitTemplate rabbitTemplate,
+                          AuditService auditService,
+                          WebSocketUpdateService webSocketUpdateService) { // <-- Add this
+    this.passRepository = passRepository;
+    this.userRepository = userRepository;
+    this.rabbitTemplate = rabbitTemplate;
+    this.auditService = auditService;
+    this.webSocketUpdateService = webSocketUpdateService; // <-- Add this
+}
+
+    public Page<VisitorPassResponse> getPassesByStatus(Long tenantId, String status, Pageable pageable) {
+    PassStatus passStatus = PassStatus.valueOf(status.toUpperCase());
+    Page<VisitorPass> passPage = passRepository.findByTenantIdAndStatus(tenantId, passStatus, pageable);
+    return passPage.map(this::mapToResponse);
     }
 
     // Method for an Employee to create a pass
@@ -55,7 +64,8 @@ public class VisitorPassService {
 
         VisitorPass savedPass = passRepository.save(pass);
         auditService.logEvent("PASS_CREATED", creator.getId(), tenantId, savedPass.getId());
-
+        webSocketUpdateService.notifyDashboardUpdate(savedPass.getTenant().getId());
+        
         return mapToResponse(savedPass);
     }
 
@@ -174,19 +184,14 @@ public class VisitorPassService {
         return passPage.map(this::mapToResponse);
     }
 
-    public List<SecurityDashboardResponse> getTodaysVisitors(Long tenantId) {
-        return passRepository.findTodaysVisitorsByTenant(tenantId, LocalDate.now())
-                .stream()
-                .map(pass -> new SecurityDashboardResponse(
-                        pass.getId(),
-                        pass.getVisitorName(),
-                        pass.getPassCode(),
-                        pass.getStatus().name(),
-                        pass.getVisitDateTime(),
-                        pass.getCreatedBy().getName()
-                ))
-                .collect(Collectors.toList());
-    }
+   // DELETE the old getTodaysVisitors method.
+
+// ADD this new method in its place in VisitorPassService.java
+public Page<VisitorPassResponse> getTodaysVisitorsPaginated(Long tenantId, Pageable pageable) {
+    List<PassStatus> statuses = List.of(PassStatus.APPROVED, PassStatus.CHECKED_IN);
+    Page<VisitorPass> passPage = passRepository.findTodaysVisitorsByTenantAndStatusIn(tenantId, LocalDate.now(), statuses, pageable);
+    return passPage.map(this::mapToResponse);
+}
 
     public VisitorPassResponse mapToResponse(VisitorPass pass) {
         VisitorPassResponse response = new VisitorPassResponse();

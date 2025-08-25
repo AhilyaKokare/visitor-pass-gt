@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, Inject } from '@angular/core';
 import { TenantService } from '../../../core/services/tenant.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -46,7 +46,7 @@ export class SuperAdminDashboardComponent implements OnInit {
 
   constructor(
     private tenantService: TenantService,
-    private toastr: ToastrService,
+    @Inject(ToastrService) private toastr: ToastrService,
     private authService: AuthService,
     private http: HttpClient
   ) {}

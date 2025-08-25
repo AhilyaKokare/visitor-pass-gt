@@ -1,20 +1,27 @@
+// in src/app/features/passes/approval-queue/approval-queue.component.ts
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { ToastrService } from 'ngx-toastr';
 import { PassService } from '../../../core/services/pass.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { VisitorPass } from '../../../core/models/pass.model';
 import { LoadingSpinnerComponent } from '../../../shared/loading-spinner/loading-spinner.component';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
+import { Page } from '../../../core/models/page.model';
+import { PaginationComponent } from '../../../shared/pagination/pagination.component';
 
 @Component({
   selector: 'app-approval-queue',
   standalone: true,
-  imports: [CommonModule, LoadingSpinnerComponent],
+  imports: [CommonModule, DatePipe, LoadingSpinnerComponent, PaginationComponent],
   templateUrl: './approval-queue.component.html',
 })
 export class ApprovalQueueComponent implements OnInit {
-  pendingPasses: VisitorPass[] = [];
+  
+  pendingPassesPage: Page<VisitorPass> | null = null;
+  currentPage = 0;
+  pageSize = 10;
+  
   tenantId!: number;
   isLoading = true;
 
@@ -30,26 +37,26 @@ export class ApprovalQueueComponent implements OnInit {
     if (user && user.tenantId) {
       this.tenantId = user.tenantId;
       this.loadPendingPasses();
-    }else {
-      this.toastr.error('Could not identify your location. Please log in again.');
-      this.isLoading = false; // Stop loading if tenantId is missing
     }
-
   }
 
   loadPendingPasses(): void {
     this.isLoading = true;
-    this.passService.getPendingPasses(this.tenantId).subscribe({
-      next: (allPasses) => {
-        this.pendingPasses = allPasses.filter(p => p.status === 'PENDING');
+    this.passService.getPendingPasses(this.tenantId, this.currentPage, this.pageSize).subscribe({
+      next: (data) => {
+        this.pendingPassesPage = data;
         this.isLoading = false;
       },
-      error: (err) => {
+      error: () => {
         this.toastr.error('Failed to load approval queue.');
-        console.error(err);
         this.isLoading = false;
       }
     });
+  }
+
+  onPageChange(pageNumber: number): void {
+    this.currentPage = pageNumber;
+    this.loadPendingPasses();
   }
 
   approve(passId: number): void {
@@ -74,8 +81,6 @@ export class ApprovalQueueComponent implements OnInit {
         },
         error: (err) => this.toastr.error(err.error.message || 'Failed to reject pass.'),
       });
-    } else if (reason !== null) { // User didn't click cancel
-        this.toastr.warning('A reason is required to reject a pass.');
     }
   }
 }

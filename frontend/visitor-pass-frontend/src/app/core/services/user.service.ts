@@ -1,37 +1,38 @@
+// FILE: frontend/visitor-pass-frontend/src/app/core/services/user.service.ts
+
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { User } from '../models/user.model';
-import { Page } from '../../shared/pagination/pagination.component';
+import { Page } from '../models/page.model'; // <-- Ensure this import is correct
 
 @Injectable({
   providedIn: 'root'
 })
 export class UserService {
+  // --- ADDED a public http property for your debug methods ---
+  public readonly http: HttpClient;
+
   private getApiUrl(tenantId: number) {
     return `${environment.apiUrl}/tenants/${tenantId}/admin`;
   }
 
-  constructor(public http: HttpClient) { }
+  constructor(httpClient: HttpClient) {
+    this.http = httpClient;
+   }
 
+  // VVV --- THIS IS THE CORRECTED METHOD --- VVV
   getUsers(tenantId: number, page: number, size: number): Observable<Page<User>> {
     const params = new HttpParams()
       .set('page', page.toString())
       .set('size', size.toString());
+    // This now correctly expects a Page<User> object from the backend
     return this.http.get<Page<User>>(`${this.getApiUrl(tenantId)}/users`, { params });
   }
 
-  // THIS IS THE METHOD WE WILL BE USING
   createUser(tenantId: number, userData: any): Observable<User> {
-    const url = `${this.getApiUrl(tenantId)}/users`;
-    console.log('UserService.createUser called with:');
-    console.log('- URL:', url);
-    console.log('- Tenant ID:', tenantId);
-    console.log('- User Data:', userData);
-    console.log('- API Base URL:', this.getApiUrl(tenantId));
-
-    return this.http.post<User>(url, userData);
+    return this.http.post<User>(`${this.getApiUrl(tenantId)}/users`, userData);
   }
 
   updateUserStatus(tenantId: number, userId: number, isActive: boolean): Observable<User> {

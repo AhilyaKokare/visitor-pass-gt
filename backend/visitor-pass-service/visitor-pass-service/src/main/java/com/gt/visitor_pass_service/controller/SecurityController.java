@@ -1,7 +1,6 @@
 package com.gt.visitor_pass_service.controller;
 
 import com.gt.visitor_pass_service.config.security.JwtTokenProvider;
-import com.gt.visitor_pass_service.dto.SecurityDashboardResponse;
 import com.gt.visitor_pass_service.dto.VisitorPassResponse;
 import com.gt.visitor_pass_service.service.TenantSecurityService;
 import com.gt.visitor_pass_service.service.VisitorPassService;
@@ -9,11 +8,15 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+
+// VVV --- THESE ARE THE CORRECT IMPORTS --- VVV
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+// ^^^ --- END OF CORRECT IMPORTS --- ^^^
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/tenants/{tenantId}/security")
@@ -24,25 +27,27 @@ public class SecurityController {
     private final TenantSecurityService tenantSecurityService;
     private final JwtTokenProvider tokenProvider;
 
+    // The constructor should only have these three dependencies
     public SecurityController(VisitorPassService visitorPassService, TenantSecurityService tenantSecurityService, JwtTokenProvider tokenProvider) {
         this.visitorPassService = visitorPassService;
         this.tenantSecurityService = tenantSecurityService;
         this.tokenProvider = tokenProvider;
     }
 
-    @GetMapping("/dashboard/today")
-    @PreAuthorize("hasAnyRole('SECURITY', 'TENANT_ADMIN')")
-    @Operation(summary = "Get Security Dashboard", description = "Retrieves a list of all visitors who are approved or have already checked in for the current day.")
-    public ResponseEntity<List<SecurityDashboardResponse>> getTodaysVisitors(
-            @Parameter(description = "ID of the tenant") @PathVariable Long tenantId,
-            HttpServletRequest request) {
-        tenantSecurityService.checkTenantAccess(request.getHeader("Authorization"), tenantId);
-        List<SecurityDashboardResponse> visitors = visitorPassService.getTodaysVisitors(tenantId);
-        return ResponseEntity.ok(visitors);
+    // This is the new paginated method
+    @GetMapping("/dashboard")
+    @PreAuthorize("hasAnyAuthority('ROLE_SECURITY', 'ROLE_TENANT_ADMIN')")
+    public ResponseEntity<Page<VisitorPassResponse>> getTodaysDashboardPaginated(
+            @PathVariable Long tenantId,
+            Pageable pageable,
+            HttpServletRequest servletRequest) {
+        tenantSecurityService.checkTenantAccess(servletRequest.getHeader("Authorization"), tenantId);
+        Page<VisitorPassResponse> response = visitorPassService.getTodaysVisitorsPaginated(tenantId, pageable);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/passes/search")
-    @PreAuthorize("hasAnyRole('SECURITY', 'TENANT_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_SECURITY', 'ROLE_TENANT_ADMIN')") // Changed to hasAnyAuthority
     @Operation(summary = "Search for a Pass by Code", description = "Finds a specific visitor pass using its unique pass code.")
     public ResponseEntity<VisitorPassResponse> findPassByCode(
             @Parameter(description = "ID of the tenant") @PathVariable Long tenantId,
@@ -54,7 +59,7 @@ public class SecurityController {
     }
 
     @PostMapping("/check-in/{passId}")
-    @PreAuthorize("hasAnyRole('SECURITY', 'TENANT_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_SECURITY', 'ROLE_TENANT_ADMIN')") // Changed to hasAnyAuthority
     @Operation(summary = "Check-In a Visitor", description = "Marks an 'APPROVED' pass as 'CHECKED_IN'.")
     public ResponseEntity<VisitorPassResponse> checkInVisitor(
             @Parameter(description = "ID of the tenant") @PathVariable Long tenantId,
@@ -66,7 +71,7 @@ public class SecurityController {
     }
 
     @PostMapping("/check-out/{passId}")
-    @PreAuthorize("hasAnyRole('SECURITY', 'TENANT_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_SECURITY', 'ROLE_TENANT_ADMIN')") // Changed to hasAnyAuthority
     @Operation(summary = "Check-Out a Visitor", description = "Marks a 'CHECKED_IN' pass as 'CHECKED_OUT'.")
     public ResponseEntity<VisitorPassResponse> checkOutVisitor(
             @Parameter(description = "ID of the tenant") @PathVariable Long tenantId,

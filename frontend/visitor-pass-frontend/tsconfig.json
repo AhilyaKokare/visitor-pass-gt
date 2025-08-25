@@ -13,7 +13,10 @@
     "experimentalDecorators": true,
     "importHelpers": true,
     "target": "ES2022",
-    "module": "preserve"
+    "module": "preserve",
+
+    "esModuleInterop": true,                 // VVV --- ADD THIS LINE --- VVV
+    "moduleResolution": "bundler"              // VVV --- AND THIS LINE --- VVV (or "node")
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,
