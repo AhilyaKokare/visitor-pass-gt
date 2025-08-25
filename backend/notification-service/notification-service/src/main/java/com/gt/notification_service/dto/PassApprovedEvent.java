@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
-// THIS MUST MATCH THE DTO IN THE OTHER SERVICE
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -17,6 +16,9 @@ public class PassApprovedEvent implements Serializable {
     private String visitorName;
     private String visitorEmail;
     private String employeeEmail;
-    private String passCode; // <-- ADDED THIS LINE
-    private LocalDateTime visitDateTime; // <-- ADDED THIS LINE
+    
+    // VVV --- THESE ARE THE MISSING FIELDS --- VVV
+    private String passCode;
+    private LocalDateTime visitDateTime;
+    private String employeeName;
 }

@@ -60,7 +60,8 @@ public class TestController {
 
             System.out.println("Parsed request: " + request);
 
-            UserResponse response = userService.createUser(tenantId, request);
+        String placeholderAdminEmail = "superadmin@system.com";
+UserResponse response = userService.createUser(tenantId, request, placeholderAdminEmail);
             System.out.println("User created successfully: " + response);
 
             return new ResponseEntity<>(response, HttpStatus.CREATED);

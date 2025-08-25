@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.security.core.Authentication;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -58,46 +59,39 @@ public ResponseEntity<Page<UserResponse>> getUsersInTenant(
     return ResponseEntity.ok(users);
 }
 
-    @PostMapping("/users")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
-    @Operation(summary = "Create a New User", description = "Creates a new user (Employee, Approver, or Security) within the Tenant Admin's assigned location.")
-    public ResponseEntity<UserResponse> createUser(@Parameter(description = "ID of the tenant where user will be created") @PathVariable Long tenantId, @Valid @RequestBody CreateUserRequest request, HttpServletRequest servletRequest) {
-        System.out.println("=== CREATE USER REQUEST ===");
-        System.out.println("Tenant ID: " + tenantId);
-        System.out.println("Request: " + request);
-        System.out.println("Authorization Header: " + servletRequest.getHeader("Authorization"));
+   @PostMapping("/users")
+@PreAuthorize("hasAuthority('ROLE_TENANT_ADMIN')") // <-- Switched to hasAuthority for best practice
+@Operation(summary = "Create a New User", description = "Creates a new user (Employee, Approver, or Security) within the Tenant Admin's assigned location.")
+public ResponseEntity<UserResponse> createUser(
+        @PathVariable Long tenantId, 
+        @Valid @RequestBody CreateUserRequest request, 
+        Authentication authentication, // <-- CHANGED from HttpServletRequest
+        HttpServletRequest servletRequest) {
+    
+    System.out.println("=== CREATE USER REQUEST ===");
+    
+    try {
+        tenantSecurityService.checkTenantAccess(servletRequest.getHeader("Authorization"), tenantId);
+        System.out.println("Tenant access check passed");
 
-        try {
-            tenantSecurityService.checkTenantAccess(servletRequest.getHeader("Authorization"), tenantId);
-            System.out.println("Tenant access check passed");
+        // VVV --- THIS IS THE FIX --- VVV
+        // Get the email of the logged-in admin from the security context
+        String adminEmail = authentication.getName();
+        System.out.println("Action performed by admin: " + adminEmail);
 
-            // Manual validation
-            if (request.getName() == null || request.getName().trim().isEmpty()) {
-                throw new IllegalArgumentException("Name cannot be empty");
-            }
-            if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
-                throw new IllegalArgumentException("Email cannot be empty");
-            }
-            if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
-                throw new IllegalArgumentException("Password cannot be empty");
-            }
-            if (request.getRole() == null || request.getRole().trim().isEmpty()) {
-                throw new IllegalArgumentException("Role cannot be empty");
-            }
+        // Call the service method with the new adminEmail parameter
+        UserResponse response = userService.createUser(tenantId, request, adminEmail);
+        System.out.println("User created successfully: " + response);
 
-            UserResponse response = userService.createUser(tenantId, request);
-            System.out.println("User created successfully: " + response);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
 
-            return new ResponseEntity<>(response, HttpStatus.CREATED);
-        } catch (IllegalArgumentException e) {
-            System.err.println("Validation error creating user: " + e.getMessage());
-            return ResponseEntity.badRequest().body(null);
-        } catch (Exception e) {
-            System.err.println("Error creating user: " + e.getMessage());
-            e.printStackTrace();
-            throw e;
-        }
+    } catch (Exception e) {
+        System.err.println("Error creating user: " + e.getMessage());
+        e.printStackTrace();
+        // It's better to return a proper error response
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
+}
 
     @PutMapping("/users/{userId}/status")
     @PreAuthorize("hasRole('TENANT_ADMIN')")

@@ -14,6 +14,8 @@ public class PassRejectedEvent implements Serializable {
     private Long passId;
 
     private String visitorName;
+    
+    private String visitorEmail; 
 
     private String employeeEmail;
 
