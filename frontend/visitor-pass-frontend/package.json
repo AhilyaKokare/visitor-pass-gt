@@ -30,6 +30,7 @@
     "@angular/platform-browser": "~20.1.6",
     "@angular/router": "~20.1.6",
     "@stomp/stompjs": "^7.1.1",
+    "@types/bootstrap": "^5.2.10",
     "animate.css": "^4.1.1",
     "bootstrap": "^5.3.7",
     "jwt-decode": "^4.0.0",

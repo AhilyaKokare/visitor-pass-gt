@@ -1,4 +1,6 @@
-import { Component, OnInit, OnDestroy } from '@angular/core'; // 1. Add OnDestroy
+// FILE: frontend/visitor-pass-frontend/src/app/features/security/security-dashboard/security-dashboard.component.ts
+
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
@@ -6,11 +8,12 @@ import { SecurityService } from '../../../core/services/security.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { VisitorPass } from '../../../core/models/pass.model';
 import { LoadingSpinnerComponent } from '../../../shared/loading-spinner/loading-spinner.component';
-import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { Page } from '../../../core/models/page.model';
 import { PaginationComponent } from '../../../shared/pagination/pagination.component';
-import { WebSocketService } from '../../../core/services/websocket.service'; // 2. Import WebSocketService
-import { Subscription } from 'rxjs'; // 3. Import Subscription
+import { WebSocketService } from '../../../core/services/websocket.service';
+import { Subscription } from 'rxjs';
+import { finalize } from 'rxjs/operators'; // VVV --- IMPORT finalize --- VVV
+import { Modal } from 'bootstrap';
 
 @Component({
   selector: 'app-security-dashboard',
@@ -18,9 +21,14 @@ import { Subscription } from 'rxjs'; // 3. Import Subscription
   imports: [CommonModule, FormsModule, LoadingSpinnerComponent, PaginationComponent, DatePipe],
   templateUrl: './security-dashboard.component.html',
 })
-export class SecurityDashboardComponent implements OnInit, OnDestroy { // 4. Implement OnDestroy
+export class SecurityDashboardComponent implements OnInit, OnDestroy, AfterViewInit {
   
+  @ViewChild('searchModal') searchModalElement!: ElementRef;
+  private searchResultModal!: Modal;
+
+  // VVV --- ENSURE THIS PROPERTY IS DECLARED --- VVV
   dashboardPage: Page<VisitorPass> | null = null;
+  
   currentPage = 0;
   pageSize = 10;
   searchPassCode: string = '';
@@ -28,16 +36,12 @@ export class SecurityDashboardComponent implements OnInit, OnDestroy { // 4. Imp
   isLoading = true;
   isSearching = false;
   tenantId!: number;
-
-  // 5. Property to hold our WebSocket subscription
   private dashboardUpdateSubscription!: Subscription;
 
-  // 6. Inject WebSocketService
   constructor(
     private securityService: SecurityService,
     private authService: AuthService,
     private toastr: ToastrService,
-    private confirmationService: ConfirmationService,
     private webSocketService: WebSocketService 
   ) {}
 
@@ -46,23 +50,26 @@ export class SecurityDashboardComponent implements OnInit, OnDestroy { // 4. Imp
     if (user && user.tenantId) {
       this.tenantId = user.tenantId;
       this.loadDashboard();
-      this.connectToWebSocket(); // 7. Connect when the component loads
+      this.connectToWebSocket();
     }
   }
 
-  // 8. Add the connect method
+  ngAfterViewInit(): void {
+    if (this.searchModalElement) {
+      this.searchResultModal = new Modal(this.searchModalElement.nativeElement);
+    }
+  }
+
   connectToWebSocket(): void {
     this.webSocketService.connect(this.tenantId);
     this.dashboardUpdateSubscription = this.webSocketService.dashboardUpdate$.subscribe(
-      (updateMessage) => {
-        console.log('Real-time update received from server:', updateMessage);
+      () => {
         this.toastr.info('The dashboard has been updated with new data.', 'Live Update');
-        this.loadDashboard(); // This is the key: reload the data
+        this.loadDashboard();
       }
     );
   }
 
-  // 9. Add the ngOnDestroy method for cleanup
   ngOnDestroy(): void {
     if (this.dashboardUpdateSubscription) {
       this.dashboardUpdateSubscription.unsubscribe();
@@ -70,18 +77,23 @@ export class SecurityDashboardComponent implements OnInit, OnDestroy { // 4. Imp
     this.webSocketService.disconnect();
   }
 
+  // VVV --- THIS IS THE CORRECTED, ROBUST METHOD --- VVV
   loadDashboard(): void {
     this.isLoading = true;
-    this.securityService.getTodaysDashboard(this.tenantId, this.currentPage, this.pageSize).subscribe({
-      next: (data) => {
-        this.dashboardPage = data;
-        this.isLoading = false;
-      },
-      error: () => {
-        this.toastr.error('Failed to load dashboard data.');
-        this.isLoading = false;
-      },
-    });
+    this.securityService.getTodaysDashboard(this.tenantId, this.currentPage, this.pageSize)
+      .pipe(
+        finalize(() => {
+          this.isLoading = false; // This will now ALWAYS run
+        })
+      )
+      .subscribe({
+        next: (data) => {
+          this.dashboardPage = data;
+        },
+        error: () => {
+          this.toastr.error('Failed to load dashboard data.');
+        }
+      });
   }
 
   onPageChange(pageNumber: number): void {
@@ -90,15 +102,16 @@ export class SecurityDashboardComponent implements OnInit, OnDestroy { // 4. Imp
   }
   
   onSearch(): void {
-    if (!this.searchPassCode.trim()) { this.searchedPass = null; return; }
+    if (!this.searchPassCode.trim()) { return; }
     this.isSearching = true;
     this.securityService.searchPassByCode(this.tenantId, this.searchPassCode).subscribe({
       next: (data) => {
         this.searchedPass = data;
         this.isSearching = false;
+        this.searchResultModal?.show();
       },
       error: () => {
-        this.toastr.error(`No pass found with code: ${this.searchPassCode}`);
+        this.toastr.error(`No valid pass found with code: ${this.searchPassCode}`);
         this.searchedPass = null;
         this.isSearching = false;
       },
@@ -106,28 +119,24 @@ export class SecurityDashboardComponent implements OnInit, OnDestroy { // 4. Imp
   }
 
   checkIn(passId: number): void {
-    if (this.confirmationService.confirm('Check-in this visitor?')) {
-      this.securityService.checkIn(this.tenantId, passId).subscribe({
-        next: () => {
-          this.toastr.success('Visitor checked in successfully.');
-          this.loadDashboard();
-          this.searchedPass = null;
-          this.searchPassCode = '';
-        },
-        error: (err) => this.toastr.error(err.error.message || 'Failed to check-in visitor.'),
-      });
-    }
+    this.securityService.checkIn(this.tenantId, passId).subscribe({
+      next: () => {
+        this.toastr.success('Visitor checked in successfully.');
+        this.loadDashboard();
+        this.searchResultModal?.hide();
+      },
+      error: (err) => this.toastr.error(err.error.message || 'Failed to check-in visitor.'),
+    });
   }
 
   checkOut(passId: number): void {
-    if (this.confirmationService.confirm('Check-out this visitor?')) {
-      this.securityService.checkOut(this.tenantId, passId).subscribe({
-        next: () => {
-          this.toastr.info('Visitor checked out successfully.');
-          this.loadDashboard();
-        },
-        error: (err) => this.toastr.error(err.error.message || 'Failed to check-out visitor.'),
-      });
-    }
+    this.securityService.checkOut(this.tenantId, passId).subscribe({
+      next: () => {
+        this.toastr.info('Visitor checked out successfully.');
+        this.loadDashboard();
+        this.searchResultModal?.hide();
+      },
+      error: (err) => this.toastr.error(err.error.message || 'Failed to check-out visitor.'),
+    });
   }
 }
