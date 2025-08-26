@@ -11,7 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import com.gt.visitor_pass_service.dto.UserCreatedEvent;
+
 import com.gt.visitor_pass_service.config.RabbitMQConfig;
 import com.gt.visitor_pass_service.exception.ResourceNotFoundException;
 import org.springframework.data.domain.Page;
@@ -154,80 +154,58 @@ public class UserService { // Renamed from AdminService
         return tenantRepository.save(tenant);
     }
 
-    public UserResponse createTenantAdmin(Long tenantId, CreateUserRequest request) {
-        request.setRole("ROLE_TENANT_ADMIN");
-        return createUser(tenantId, request);
-    }
+   public UserResponse createTenantAdmin(Long tenantId, CreateUserRequest request) {
+    request.setRole("ROLE_TENANT_ADMIN");
+    // A Tenant Admin is typically created by a Super Admin.
+    // We provide a placeholder email here to satisfy the method signature.
+    String placeholderSuperAdminEmail = "superadmin@system.com";
+    return createUser(tenantId, request, placeholderSuperAdminEmail);
+}
+   @Transactional
+public UserResponse createUser(Long tenantId, CreateUserRequest request, String adminEmail) {
+    validateEmailUniqueness(request.getEmail(), null);
+    validateMobileUniqueness(request.getContact(), null);
 
-    public UserResponse createUser(Long tenantId, CreateUserRequest request) {
-        System.out.println("=== UserService.createUser called ===");
-        System.out.println("Tenant ID: " + tenantId);
-        System.out.println("Request: " + request);
+    Tenant tenant = tenantRepository.findById(tenantId)
+            .orElseThrow(() -> new ResourceNotFoundException("Tenant", "id", tenantId));
 
-        try {
-            // Validate email uniqueness across all users (regardless of role or tenant)
-            validateEmailUniqueness(request.getEmail(), null);
+    User creatingAdmin = userRepository.findByEmail(adminEmail)
+            .orElseThrow(() -> new ResourceNotFoundException("Admin User", "email", adminEmail));
 
-            // Validate mobile uniqueness and format
-            validateMobileUniqueness(request.getContact(), null);
+    User user = new User();
+    user.setUniqueId(UUID.randomUUID().toString());
+    user.setName(request.getName());
+    user.setEmail(ValidationUtil.normalizeEmail(request.getEmail()));
+    user.setPassword(passwordEncoder.encode(request.getPassword()));
+    user.setContact(ValidationUtil.normalizeMobile(request.getContact()));
+    user.setRole(request.getRole());
+    user.setTenant(tenant);
+    user.setActive(true);
+    user.setJoiningDate(request.getJoiningDate() != null ? request.getJoiningDate() : LocalDate.now());
+    user.setAddress(request.getAddress());
+    user.setGender(request.getGender());
+    user.setDepartment(request.getDepartment());
 
-            Tenant tenant = tenantRepository.findById(tenantId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Tenant", "id", tenantId));
-            System.out.println("Tenant found: " + tenant.getName());
+    User savedUser = userRepository.save(user);
+    auditService.logEvent("USER_CREATED", creatingAdmin.getId(), tenantId, savedUser.getId());
 
-            User user = new User();
-            // Generate a unique ID for the user
-            user.setUniqueId(UUID.randomUUID().toString());
+    UserCreatedEvent event = new UserCreatedEvent(
+            savedUser.getName(),
+            savedUser.getEmail(),
+            savedUser.getRole(),
+            tenant.getName(),
+            "http://localhost:4200/login",
+            creatingAdmin.getName() // This now matches the updated DTO
+    );
+    rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, RabbitMQConfig.ROUTING_KEY_USER_CREATED, event);
 
-            user.setName(request.getName());
-            user.setEmail(ValidationUtil.normalizeEmail(request.getEmail()));
-            user.setPassword(passwordEncoder.encode(request.getPassword()));
-            user.setContact(ValidationUtil.normalizeMobile(request.getContact()));
-            user.setRole(request.getRole());
-            user.setTenant(tenant);
-            user.setActive(true);
+    return mapToUserResponse(savedUser);
+}
 
-            // Set new fields
-            user.setJoiningDate(request.getJoiningDate() != null ? request.getJoiningDate() : LocalDate.now());
-            user.setAddress(request.getAddress());
-            user.setGender(request.getGender());
-            user.setDepartment(request.getDepartment());
-
-            System.out.println("About to save user: " + user.getEmail());
-            User savedUser = userRepository.save(user);
-            System.out.println("User saved with ID: " + savedUser.getId());
-
-            auditService.logEvent("USER_CREATED", savedUser.getId(), tenantId, null);
-
-            UserCreatedEvent event = new UserCreatedEvent(
-                    savedUser.getName(),
-                    savedUser.getEmail(),
-                    savedUser.getRole(),
-                    tenant.getName(),
-                    "http://localhost:4200/login" // Your frontend login URL
-            );
-
-            rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, RabbitMQConfig.ROUTING_KEY_USER_CREATED, event);
-
-            System.out.println(">>> UserCreatedEvent sent for user: " + savedUser.getEmail());
-
-            UserResponse response = mapToUserResponse(savedUser);
-            System.out.println("Returning response: " + response);
-            return response;
-        } catch (Exception e) {
-            System.err.println("Error in UserService.createUser: " + e.getMessage());
-            e.printStackTrace();
-            throw e;
-        }
-    }
-
-    public Page<UserResponse> getUsersByTenant(Long tenantId, Pageable pageable) {
-        Page<User> userPage = userRepository.findByTenantId(tenantId, pageable);
-        // The .map() function on a Page object automatically converts the content
-        // while preserving the pagination metadata.
-        return userPage.map(this::mapToUserResponse);
-    }
-
+    public Page<UserResponse> getUsersInTenant(Long tenantId, Pageable pageable) {
+    Page<User> userPage = userRepository.findByTenantId(tenantId, pageable);
+    return userPage.map(this::mapToUserResponse);
+}
     public UserResponse updateUserStatus(Long userId, Long tenantId, boolean isActive) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
