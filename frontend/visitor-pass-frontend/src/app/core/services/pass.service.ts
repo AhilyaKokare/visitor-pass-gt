@@ -26,17 +26,12 @@ export class PassService {
     return this.http.get<Page<VisitorPass>>(`${this.getApiUrl(tenantId)}/passes/history`, { params });
   }
 
-  // VVV --- THIS IS THE CORRECTED METHOD --- VVV
-  // Find and replace this method in your pass.service.ts
-// in src/app/core/services/pass.service.ts
-getPendingPasses(tenantId: number, page: number, size: number): Observable<Page<VisitorPass>> {
-  const params = new HttpParams()
-    .set('page', page.toString())
-    .set('size', size.toString())
-    .set('status', 'PENDING');
-    
-  return this.http.get<Page<VisitorPass>>(`${this.getApiUrl(tenantId)}/approvals`, { params });
-}
+  getPendingPasses(tenantId: number): Observable<VisitorPass[]> {
+    return this.http.get<Page<VisitorPass>>(`${this.getApiUrl(tenantId)}/passes`).pipe(
+        map(response => response.content)
+      );
+  }
+
   approvePass(tenantId: number, passId: number): Observable<any> {
     return this.http.post(`${this.getApiUrl(tenantId)}/approvals/${passId}/approve`, {});
   }

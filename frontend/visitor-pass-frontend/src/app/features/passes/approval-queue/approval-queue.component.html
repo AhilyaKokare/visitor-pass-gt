@@ -1,20 +1,22 @@
 <!-- in src/app/features/passes/approval-queue/approval-queue.component.html -->
 <div class="container mt-4">
-  <h3>Pass Approval Queue</h3>
-  <p>Review pending visitor pass requests for your location.</p>
-
-  <div *ngIf="isLoading; else content" class="text-center">
-    <app-loading-spinner></app-loading-spinner>
-  </div>
+  <div class="card shadow-sm">
+    <div class="card-header bg-white">
+      <h3 class="mb-0">Pass Approval Queue</h3>
+      <p class="text-muted mb-0">Review and action pending visitor pass requests for your location.</p>
+    </div>
+    <div class="card-body">
+      <div *ngIf="isLoading; else content" class="text-center py-5">
+        <app-loading-spinner></app-loading-spinner>
+      </div>
 
   <ng-template #content>
     <div class="table-responsive">
       <table class="table table-striped table-hover">
         <thead>
           <tr>
-            <th>#</th>
             <th>Visitor Name</th>
-            <th>Purpose of Visit</th>
+            <th>Purpose of Visit</th> <!-- <-- ADDED THIS HEADER -->
             <th>Requested By</th>
             <th>Visit Date</th>
             <th>Status</th>
@@ -22,10 +24,9 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let pass of pendingPassesPage?.content; let i = index">
-            <td>{{ (currentPage * pageSize) + i + 1 }}</td>
+          <tr *ngFor="let pass of pendingPasses">
             <td>{{ pass.visitorName }}</td>
-            <td>{{ pass.purpose }}</td>
+            <td>{{ pass.purpose }}</td> <!-- <-- ADDED THIS DATA CELL -->
             <td>{{ pass.createdByEmployeeName }}</td>
             <td>{{ pass.visitDateTime | date:'medium' }}</td>
             <td><span class="badge bg-warning text-dark">{{ pass.status }}</span></td>
@@ -34,13 +35,11 @@
               <button class="btn btn-danger btn-sm" (click)="reject(pass.id)">Reject</button>
             </td>
           </tr>
-          <tr *ngIf="pendingPassesPage?.empty">
-            <td colspan="7" class="text-center">No pending requests in the queue.</td>
+          <tr *ngIf="pendingPasses.length === 0">
+            <td colspan="6" class="text-center">No pending requests in the queue.</td>
           </tr>
         </tbody>
       </table>
     </div>
-    
-    <app-pagination [page]="pendingPassesPage" (pageChange)="onPageChange($event)"></app-pagination>
   </ng-template>
 </div>

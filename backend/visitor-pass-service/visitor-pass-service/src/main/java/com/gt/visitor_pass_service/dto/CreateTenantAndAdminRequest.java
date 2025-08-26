@@ -1,8 +1,11 @@
 package com.gt.visitor_pass_service.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import java.time.LocalDate;
 
 @Data
 public class CreateTenantAndAdminRequest {
@@ -26,7 +29,12 @@ public class CreateTenantAndAdminRequest {
 
     private String adminContact;
 
-    // Additional admin fields
+    // --- NEW FIELD TO CAPTURE JOINING DATE ---
+    @NotNull(message = "Admin joining date cannot be null")
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate adminJoiningDate;
+
+    // Additional admin fields (if needed for future expansion)
     private String adminAddress;
     private String adminGender;
     private String adminDepartment;

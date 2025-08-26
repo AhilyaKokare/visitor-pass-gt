@@ -24,47 +24,43 @@
 
   <hr>
 
-  <!-- VVV --- NEW PAGINATED TABLE --- VVV -->
-  <h4>Today's Visitor Activity</h4>
-  <div *ngIf="isLoading; else visitorTable">
-    <app-loading-spinner></app-loading-spinner>
-  </div>
-  <ng-template #visitorTable>
-    <div class="table-responsive">
-      <table class="table table-striped table-hover">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Visitor Name</th>
-            <th>Pass Code</th>
-            <th>Host Employee</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let pass of dashboardPage?.content; let i = index">
-            <td>{{ (currentPage * pageSize) + i + 1 }}</td>
-            <td>{{ pass.visitorName }}</td>
-            <td>{{ pass.passCode }}</td>
-            <td>{{ pass.createdByEmployeeName }}</td>
-            <td>
-              <span class="badge" [ngClass]="{
-                'bg-primary': pass.status === 'APPROVED',
-                'bg-info text-dark': pass.status === 'CHECKED_IN'
-              }">{{ pass.status }}</span>
-            </td>
-            <td>
-              <button *ngIf="pass.status === 'APPROVED'" class="btn btn-success btn-sm" (click)="checkIn(pass.id)">Check-In</button>
-              <button *ngIf="pass.status === 'CHECKED_IN'" class="btn btn-warning btn-sm" (click)="checkOut(pass.id)">Check-Out</button>
-            </td>
-          </tr>
-          <tr *ngIf="dashboardPage?.empty">
-            <td colspan="6" class="text-center">No visitor activity for today.</td>
-          </tr>
-        </tbody>
-      </table>
+  <!-- Visitor Lists -->
+  <div class="row">
+    <div class="col-md-6">
+      <h4>Approved for Entry ({{ approvedVisitors.length }})</h4>
+      <div *ngIf="isLoading; else approvedList">
+        <app-loading-spinner></app-loading-spinner>
+      </div>
+      <ng-template #approvedList>
+        <ul class="list-group">
+          <li *ngFor="let visitor of approvedVisitors" class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+              <strong>{{ visitor.visitorName }}</strong><br>
+              <small>Pass Code: {{ visitor.passCode }} | Host: {{ visitor.employeeHostName }}</small>
+            </div>
+            <button class="btn btn-success btn-sm" (click)="checkIn(visitor.passId)">Check-In</button>
+          </li>
+          <li *ngIf="!isLoading && approvedVisitors.length === 0" class="list-group-item text-center">No visitors waiting for check-in.</li>
+        </ul>
+      </ng-template>
     </div>
-    <app-pagination [page]="dashboardPage" (pageChange)="onPageChange($event)"></app-pagination>
-  </ng-template>
+    <div class="col-md-6">
+      <h4>Currently On-Site ({{ checkedInVisitors.length }})</h4>
+      <div *ngIf="isLoading; else checkedInList">
+         <app-loading-spinner></app-loading-spinner>
+      </div>
+      <ng-template #checkedInList>
+        <ul class="list-group">
+          <li *ngFor="let visitor of checkedInVisitors" class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+              <strong>{{ visitor.visitorName }}</strong><br>
+              <small>Pass Code: {{ visitor.passCode }} | Host: {{ visitor.employeeHostName }}</small>
+            </div>
+            <button class="btn btn-warning btn-sm" (click)="checkOut(visitor.passId)">Check-Out</button>
+          </li>
+          <li *ngIf="!isLoading && checkedInVisitors.length === 0" class="list-group-item text-center">No visitors currently on-site.</li>
+        </ul>
+      </ng-template>
+    </div>
+  </div>
 </div>

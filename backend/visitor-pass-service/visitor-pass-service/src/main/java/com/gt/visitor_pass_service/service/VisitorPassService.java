@@ -9,15 +9,13 @@ import com.gt.visitor_pass_service.model.enums.PassStatus;
 import com.gt.visitor_pass_service.repository.UserRepository;
 import com.gt.visitor_pass_service.repository.VisitorPassRepository;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class VisitorPassService {
@@ -64,8 +62,7 @@ public class VisitorPassService {
 
         VisitorPass savedPass = passRepository.save(pass);
         auditService.logEvent("PASS_CREATED", creator.getId(), tenantId, savedPass.getId());
-        webSocketUpdateService.notifyDashboardUpdate(savedPass.getTenant().getId());
-        
+
         return mapToResponse(savedPass);
     }
 
@@ -85,24 +82,20 @@ public class VisitorPassService {
 
         // VVV THIS IS THE FIX VVV
         // The event now includes the visitor's email, pass code, and visit date/time
-       PassApprovedEvent event = new PassApprovedEvent(
-            savedPass.getId(),                      // 1. passId
-            savedPass.getTenant().getId(),          // 2. tenantId
-            savedPass.getVisitorName(),             // 3. visitorName
-            savedPass.getVisitorEmail(),            // 4. visitorEmail
-            savedPass.getCreatedBy().getEmail(),    // 5. employeeEmail
-            savedPass.getPassCode(),                // 6. passCode
-            savedPass.getVisitDateTime(),           // 7. visitDateTime
-            savedPass.getCreatedBy().getName()      // 8. employeeName
-                );
+        PassApprovedEvent event = new PassApprovedEvent(
+                savedPass.getId(),
+                savedPass.getTenant().getId(),
+                savedPass.getVisitorName(),
+                savedPass.getVisitorEmail(),
+                savedPass.getCreatedBy().getEmail(),
+                savedPass.getPassCode(), // <-- ADDED
+                savedPass.getVisitDateTime() // <-- ADDED
+        );
         rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, RabbitMQConfig.ROUTING_KEY_APPROVED, event);
 
         return mapToResponse(savedPass);
     }
 
-    /**
-     * Rejects a visitor pass request.
-     */
     public VisitorPassResponse rejectPass(Long passId, String approverEmail, String reason) {
         User approver = userRepository.findByEmail(approverEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", approverEmail));
@@ -129,7 +122,6 @@ public class VisitorPassService {
         return mapToResponse(savedPass);
     }
 
-    // Method for Security to check-in a visitor
     public VisitorPassResponse checkIn(Long passId) {
         VisitorPass pass = passRepository.findById(passId)
                 .orElseThrow(() -> new ResourceNotFoundException("VisitorPass", "id", passId));
@@ -186,14 +178,19 @@ public class VisitorPassService {
         return passPage.map(this::mapToResponse);
     }
 
-   // DELETE the old getTodaysVisitors method.
-
-// ADD this new method in its place in VisitorPassService.java
-public Page<VisitorPassResponse> getTodaysVisitorsPaginated(Long tenantId, Pageable pageable) {
-    List<PassStatus> statuses = List.of(PassStatus.APPROVED, PassStatus.CHECKED_IN);
-    Page<VisitorPass> passPage = passRepository.findTodaysVisitorsByTenantAndStatusIn(tenantId, LocalDate.now(), statuses, pageable);
-    return passPage.map(this::mapToResponse);
-}
+    public List<SecurityDashboardResponse> getTodaysVisitors(Long tenantId) {
+        return passRepository.findTodaysVisitorsByTenant(tenantId, LocalDate.now())
+                .stream()
+                .map(pass -> new SecurityDashboardResponse(
+                        pass.getId(),
+                        pass.getVisitorName(),
+                        pass.getPassCode(),
+                        pass.getStatus().name(),
+                        pass.getVisitDateTime(),
+                        pass.getCreatedBy().getName()
+                ))
+                .collect(Collectors.toList());
+    }
 
     public VisitorPassResponse mapToResponse(VisitorPass pass) {
         VisitorPassResponse response = new VisitorPassResponse();
@@ -217,6 +214,4 @@ public Page<VisitorPassResponse> getTodaysVisitorsPaginated(Long tenantId, Pagea
         
         return response;
     }
-
-    
 }

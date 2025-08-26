@@ -1,16 +1,12 @@
-import { Component, OnInit, OnDestroy } from '@angular/core'; // 1. Add OnDestroy
-import { CommonModule, DatePipe } from '@angular/common';
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
-import { SecurityService } from '../../../core/services/security.service';
+import { SecurityService, SecurityDashboardPage } from '../../../core/services/security.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { VisitorPass } from '../../../core/models/pass.model';
 import { LoadingSpinnerComponent } from '../../../shared/loading-spinner/loading-spinner.component';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
-import { Page } from '../../../core/models/page.model';
-import { PaginationComponent } from '../../../shared/pagination/pagination.component';
-import { WebSocketService } from '../../../core/services/websocket.service'; // 2. Import WebSocketService
-import { Subscription } from 'rxjs'; // 3. Import Subscription
 
 @Component({
   selector: 'app-security-dashboard',
@@ -18,16 +14,19 @@ import { Subscription } from 'rxjs'; // 3. Import Subscription
   imports: [CommonModule, FormsModule, LoadingSpinnerComponent, PaginationComponent, DatePipe],
   templateUrl: './security-dashboard.component.html',
 })
-export class SecurityDashboardComponent implements OnInit, OnDestroy { // 4. Implement OnDestroy
-  
-  dashboardPage: Page<VisitorPass> | null = null;
-  currentPage = 0;
-  pageSize = 10;
+export class SecurityDashboardComponent implements OnInit {
+  approvedVisitors: SecurityPassInfo[] = [];
+  checkedInVisitors: SecurityPassInfo[] = [];
+
   searchPassCode: string = '';
   searchedPass: VisitorPass | null = null;
   isLoading = true;
   isSearching = false;
   tenantId!: number;
+  approvedCurrentPage = 0;
+  onSiteCurrentPage = 0;
+  pageSize = 5;
+  private passChangeSubscription?: Subscription;
 
   // 5. Property to hold our WebSocket subscription
   private dashboardUpdateSubscription!: Subscription;
@@ -37,8 +36,7 @@ export class SecurityDashboardComponent implements OnInit, OnDestroy { // 4. Imp
     private securityService: SecurityService,
     private authService: AuthService,
     private toastr: ToastrService,
-    private confirmationService: ConfirmationService,
-    private webSocketService: WebSocketService 
+    private confirmationService: ConfirmationService
   ) {}
 
   ngOnInit(): void {
@@ -46,35 +44,15 @@ export class SecurityDashboardComponent implements OnInit, OnDestroy { // 4. Imp
     if (user && user.tenantId) {
       this.tenantId = user.tenantId;
       this.loadDashboard();
-      this.connectToWebSocket(); // 7. Connect when the component loads
     }
-  }
-
-  // 8. Add the connect method
-  connectToWebSocket(): void {
-    this.webSocketService.connect(this.tenantId);
-    this.dashboardUpdateSubscription = this.webSocketService.dashboardUpdate$.subscribe(
-      (updateMessage) => {
-        console.log('Real-time update received from server:', updateMessage);
-        this.toastr.info('The dashboard has been updated with new data.', 'Live Update');
-        this.loadDashboard(); // This is the key: reload the data
-      }
-    );
-  }
-
-  // 9. Add the ngOnDestroy method for cleanup
-  ngOnDestroy(): void {
-    if (this.dashboardUpdateSubscription) {
-      this.dashboardUpdateSubscription.unsubscribe();
-    }
-    this.webSocketService.disconnect();
   }
 
   loadDashboard(): void {
     this.isLoading = true;
-    this.securityService.getTodaysDashboard(this.tenantId, this.currentPage, this.pageSize).subscribe({
+    this.securityService.getTodaysDashboard(this.tenantId).subscribe({
       next: (data) => {
-        this.dashboardPage = data;
+        this.approvedVisitors = data.filter((v) => v.status === 'APPROVED');
+        this.checkedInVisitors = data.filter((v) => v.status === 'CHECKED_IN');
         this.isLoading = false;
       },
       error: () => {
@@ -84,11 +62,6 @@ export class SecurityDashboardComponent implements OnInit, OnDestroy { // 4. Imp
     });
   }
 
-  onPageChange(pageNumber: number): void {
-    this.currentPage = pageNumber;
-    this.loadDashboard();
-  }
-  
   onSearch(): void {
     if (!this.searchPassCode.trim()) { this.searchedPass = null; return; }
     this.isSearching = true;
@@ -106,13 +79,11 @@ export class SecurityDashboardComponent implements OnInit, OnDestroy { // 4. Imp
   }
 
   checkIn(passId: number): void {
-    if (this.confirmationService.confirm('Check-in this visitor?')) {
+    if (this.confirmationService.confirm('Are you sure you want to check-in this visitor?')) {
       this.securityService.checkIn(this.tenantId, passId).subscribe({
         next: () => {
           this.toastr.success('Visitor checked in successfully.');
-          this.loadDashboard();
-          this.searchedPass = null;
-          this.searchPassCode = '';
+          this.refreshDataAfterAction();
         },
         error: (err) => this.toastr.error(err.error.message || 'Failed to check-in visitor.'),
       });
@@ -120,14 +91,32 @@ export class SecurityDashboardComponent implements OnInit, OnDestroy { // 4. Imp
   }
 
   checkOut(passId: number): void {
-    if (this.confirmationService.confirm('Check-out this visitor?')) {
+    if (this.confirmationService.confirm('Are you sure you want to check-out this visitor?')) {
       this.securityService.checkOut(this.tenantId, passId).subscribe({
         next: () => {
           this.toastr.info('Visitor checked out successfully.');
-          this.loadDashboard();
+          this.refreshDataAfterAction();
         },
         error: (err) => this.toastr.error(err.error.message || 'Failed to check-out visitor.'),
       });
+    }
+  }
+
+  refreshDataAfterAction(): void {
+    this.loadDashboard();
+    if (this.searchedPass) {
+      this.searchPassCode = this.searchedPass.passCode;
+      this.onSearch();
+    }
+  }
+
+  getStatusClass(status: string): string {
+    switch (status) {
+      case 'APPROVED': return 'bg-primary';
+      case 'CHECKED_IN': return 'bg-info text-dark';
+      case 'CHECKED_OUT': return 'bg-success';
+      case 'REJECTED': return 'bg-danger';
+      default: return 'bg-secondary';
     }
   }
 }

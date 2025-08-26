@@ -2,8 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { VisitorPass } from '../models/pass.model';
-import { Page } from '../models/page.model';
+import { SecurityPassInfo, VisitorPass } from '../models/pass.model';
 
 @Injectable({
   providedIn: 'root'
@@ -15,12 +14,8 @@ export class SecurityService {
 
   constructor(private http: HttpClient) { }
 
-  // UPDATED to be paginated
-  getTodaysDashboard(tenantId: number, page: number, size: number): Observable<Page<VisitorPass>> {
-    const params = new HttpParams()
-      .set('page', page.toString())
-      .set('size', size.toString());
-    return this.http.get<Page<VisitorPass>>(`${this.getApiUrl(tenantId)}/dashboard`, { params });
+  getTodaysDashboard(tenantId: number): Observable<SecurityPassInfo[]> {
+    return this.http.get<SecurityPassInfo[]>(`${this.getApiUrl(tenantId)}/dashboard/today`);
   }
 
   searchPassByCode(tenantId: number, passCode: string): Observable<VisitorPass> {

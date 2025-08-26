@@ -2,6 +2,7 @@ package com.gt.visitor_pass_service.dto;
 
 import lombok.Builder;
 import lombok.Data;
+import java.time.LocalDate; // <-- ADD THIS IMPORT
 import java.time.LocalDateTime;
 
 @Data
@@ -19,4 +20,5 @@ public class TenantDashboardInfo {
     private String adminEmail;
     private String adminContact;
     private boolean adminIsActive;
+    private LocalDate adminJoiningDate; // <-- ADD THIS FIELD
 }

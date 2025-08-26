@@ -1,7 +1,7 @@
 package com.gt.visitor_pass_service.repository;
 
 import com.gt.visitor_pass_service.model.VisitorPass;
-import com.gt.visitor_pass_service.model.enums.PassStatus; // <-- IMPORT THE ENUM
+import com.gt.visitor_pass_service.model.enums.PassStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,29 +15,31 @@ import java.util.Optional;
 
 public interface VisitorPassRepository extends JpaRepository<VisitorPass, Long> {
     
-    Page<VisitorPass> findByTenantIdAndStatus(Long tenantId, PassStatus status, Pageable pageable);
+
     Page<VisitorPass> findByTenantId(Long tenantId, Pageable pageable);
 
     Page<VisitorPass> findByCreatedById(Long userId, Pageable pageable);
 
     Optional<VisitorPass> findByTenantIdAndPassCode(Long tenantId, String passCode);
 
-
-    // Add this to VisitorPassRepository.java
-@Query("SELECT vp FROM VisitorPass vp WHERE vp.tenant.id = :tenantId AND DATE(vp.visitDateTime) = :date AND vp.status IN :statuses")
-Page<VisitorPass> findTodaysVisitorsByTenantAndStatusIn(Long tenantId, LocalDate date, List<PassStatus> statuses, Pageable pageable);
-   
     // VVV THIS IS THE FIX for PassExpiryService VVV
     // This query now correctly uses the PassStatus enum and compares the full date and time.
     @Query("SELECT vp FROM VisitorPass vp WHERE vp.status = :status AND vp.visitDateTime < :now")
     List<VisitorPass> findOverdueApprovedPasses(@Param("status") PassStatus status, @Param("now") LocalDateTime now);
 
-    // FOR SECURITY DASHBOARD
-    // Corrected to use the enum for status checks.
-    @Query("SELECT vp FROM VisitorPass vp WHERE vp.tenant.id = :tenantId AND DATE(vp.visitDateTime) = :date AND (vp.status = com.gt.visitor_pass_service.model.enums.PassStatus.APPROVED OR vp.status = com.gt.visitor_pass_service.model.enums.PassStatus.CHECKED_IN)")
-    List<VisitorPass> findTodaysVisitorsByTenant(@Param("tenantId") Long tenantId, @Param("date") LocalDate date);
+    // --- THIS IS THE REPLACEMENT FOR THE OLD SECURITY DASHBOARD QUERY ---
+    /**
+     * Finds a paginated list of today's visitors for a specific tenant and status.
+     * This is the core query for the paginated security dashboard.
+     * @param tenantId The ID of the tenant.
+     * @param date The current date (today).
+     * @param status The specific PassStatus to filter by (e.g., APPROVED, CHECKED_IN).
+     * @param pageable The pagination information (page number, size, sort).
+     * @return A Page of VisitorPass objects.
+     */
+    @Query("SELECT vp FROM VisitorPass vp WHERE vp.tenant.id = :tenantId AND DATE(vp.visitDateTime) = :date AND vp.status = :status")
+    Page<VisitorPass> findTodaysVisitorsByTenantAndStatus(@Param("tenantId") Long tenantId, @Param("date") LocalDate date, @Param("status") PassStatus status, Pageable pageable);
 
-    // Corrected to use the enum parameter.
     long countByTenantIdAndStatus(Long tenantId, PassStatus status);
 
     @Query("SELECT COUNT(vp) FROM VisitorPass vp WHERE vp.tenant.id = :tenantId AND DATE(vp.visitDateTime) = CURRENT_DATE AND vp.status = com.gt.visitor_pass_service.model.enums.PassStatus.APPROVED")
