@@ -1,30 +1,25 @@
 <div class="container mt-4">
   <h3>Security Dashboard - Today's Visitors</h3>
 
-  <!-- Search Section (Unchanged) -->
+  <!-- Search Section -->
   <div class="card mb-4">
-    <div class="card-header fw-bold">Search for a Visitor Pass</div>
+    <div class="card-header fw-bold">Verify a Visitor Pass</div>
     <div class="card-body">
       <form (ngSubmit)="onSearch()">
         <div class="input-group">
-          <input type="text" class="form-control" placeholder="Enter Visitor Pass Code..." name="passCode" [(ngModel)]="searchPassCode">
-          <button class="btn btn-outline-primary" type="submit" [disabled]="!searchPassCode">
+          <input type="text" class="form-control" placeholder="Enter 8-Character Visitor Pass Code..." name="passCode" [(ngModel)]="searchPassCode" required>
+          <button class="btn btn-primary" type="submit" [disabled]="!searchPassCode.trim() || isSearching">
             <span *ngIf="isSearching" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-            {{ isSearching ? 'Searching...' : 'Search' }}
+            {{ isSearching ? 'Searching...' : 'Verify' }}
           </button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Searched Pass Result (Unchanged, but with updated checkIn/checkOut) -->
-  <div *ngIf="searchedPass" class="card bg-light mb-4">
-    <!-- ... search result card content ... -->
-  </div>
-
   <hr>
 
-  <!-- VVV --- NEW PAGINATED TABLE --- VVV -->
+  <!-- Paginated Table of Today's Visitors -->
   <h4>Today's Visitor Activity</h4>
   <div *ngIf="isLoading; else visitorTable">
     <app-loading-spinner></app-loading-spinner>
@@ -67,4 +62,44 @@
     </div>
     <app-pagination [page]="dashboardPage" (pageChange)="onPageChange($event)"></app-pagination>
   </ng-template>
+</div>
+
+<!-- VVV --- NEW MODAL FOR SEARCH RESULT --- VVV -->
+<div class="modal fade" id="searchResultModal" #searchModal tabindex="-1" aria-labelledby="searchResultModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content" *ngIf="searchedPass">
+      <div class="modal-header" [ngClass]="{
+        'bg-success text-white': searchedPass.status === 'APPROVED',
+        'bg-info text-dark': searchedPass.status === 'CHECKED_IN',
+        'bg-danger text-white': searchedPass.status !== 'APPROVED' && searchedPass.status !== 'CHECKED_IN'
+      }">
+        <h5 class="modal-title" id="searchResultModalLabel">Verification Result: {{ searchedPass.status }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <p><strong>Visitor Name:</strong><br>{{ searchedPass.visitorName }}</p>
+            <p><strong>Pass Code:</strong><br><span class="fs-5 fw-bold">{{ searchedPass.passCode }}</span></p>
+            <p><strong>Scheduled For:</strong><br>{{ searchedPass.visitDateTime | date:'full' }}</p>
+          </div>
+          <div class="col-md-6 mb-3">
+            <p><strong>Host Employee:</strong><br>{{ searchedPass.createdByEmployeeName }}</p>
+            <p><strong>Purpose of Visit:</strong><br>{{ searchedPass.purpose }}</p>
+          </div>
+        </div>
+        <div class="d-grid gap-2" *ngIf="searchedPass.status === 'APPROVED' || searchedPass.status === 'CHECKED_IN'">
+           <hr>
+           <button *ngIf="searchedPass.status === 'APPROVED'" class="btn btn-success btn-lg" (click)="checkIn(searchedPass.id)">CONFIRM CHECK-IN</button>
+           <button *ngIf="searchedPass.status === 'CHECKED_IN'" class="btn btn-warning btn-lg" (click)="checkOut(searchedPass.id)">CONFIRM CHECK-OUT</button>
+        </div>
+        <div *ngIf="searchedPass.status !== 'APPROVED' && searchedPass.status !== 'CHECKED_IN'" class="alert alert-danger mt-3">
+          <strong>Access Denied.</strong> This pass is not currently valid for entry or exit.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
 </div>
