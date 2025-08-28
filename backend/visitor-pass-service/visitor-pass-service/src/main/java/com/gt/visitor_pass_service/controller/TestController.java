@@ -31,50 +31,28 @@ public class TestController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/tenants/{tenantId}/users")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
-    public ResponseEntity<?> createUserSimple(@PathVariable Long tenantId, @RequestBody Map<String, Object> userData) {
-        try {
-            System.out.println("=== TEST CREATE USER ===");
-            System.out.println("Tenant ID: " + tenantId);
-            System.out.println("User Data: " + userData);
+    // Inside TestController.java
 
-            // Create a simple CreateUserRequest
-            CreateUserRequest request = new CreateUserRequest();
-            request.setName((String) userData.get("name"));
-            request.setEmail((String) userData.get("email"));
-            request.setPassword((String) userData.get("password"));
-            request.setRole((String) userData.getOrDefault("role", "ROLE_EMPLOYEE"));
-            request.setDepartment((String) userData.get("department"));
-            request.setContact((String) userData.get("contact"));
-            request.setGender((String) userData.get("gender"));
-            request.setAddress((String) userData.get("address"));
-            
-            // Handle joining date
-            String joiningDateStr = (String) userData.get("joiningDate");
-            if (joiningDateStr != null && !joiningDateStr.isEmpty()) {
-                request.setJoiningDate(LocalDate.parse(joiningDateStr));
-            } else {
-                request.setJoiningDate(LocalDate.now());
-            }
-
-            System.out.println("Parsed request: " + request);
-
-         // We provide a placeholder admin email for this test endpoint.
-            String placeholderAdminEmail = "test.admin@system.com";
-            UserResponse response = userService.createUser(tenantId, request, placeholderAdminEmail);
-            System.out.println("User created successfully: " + response);
-
-            return new ResponseEntity<>(response, HttpStatus.CREATED);
-        } catch (Exception e) {
-            System.err.println("Error in test create user: " + e.getMessage());
-            e.printStackTrace();
-            
-            Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("error", e.getMessage());
-            errorResponse.put("type", e.getClass().getSimpleName());
-            
-            return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-        }
+@PostMapping("/tenants/{tenantId}/users")
+@PreAuthorize("hasAuthority('ROLE_TENANT_ADMIN')") // Changed to hasAuthority
+public ResponseEntity<?> createUserSimple(@PathVariable Long tenantId, @RequestBody Map<String, Object> userData) {
+    try {
+        CreateUserRequest request = new CreateUserRequest();
+        request.setName((String) userData.get("name"));
+        request.setEmail((String) userData.get("email"));
+        request.setPassword((String) userData.get("password"));
+        request.setRole((String) userData.getOrDefault("role", "ROLE_EMPLOYEE"));
+        // ... (setting other properties)
+        
+        // VVV --- THIS IS THE FIX --- VVV
+        String placeholderAdminEmail = "test.admin@system.com";
+        UserResponse response = userService.createUser(tenantId, request, placeholderAdminEmail);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
+        
+    } catch (Exception e) {
+        Map<String, String> errorResponse = new HashMap<>();
+        errorResponse.put("error", e.getMessage());
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
+}
 }

@@ -114,5 +114,27 @@ export class UserListComponent implements OnInit {
     }
   }
 
+  
+/**
+ * Returns the CSS class for the status badge based on the user's active state.
+ */
+getStatusBadgeClass(user: User): string {
+    return user.isActive ? 'bg-success' : 'bg-secondary';
+}
+
+/**
+ * Returns the text for the action button ('Activate' or 'Deactivate').
+ */
+getActionButtonText(user: User): string {
+    return user.isActive ? 'Deactivate' : 'Activate';
+}
+
+/**
+ * Returns the CSS class for the action button.
+ */
+getActionButtonClass(user: User): string {
+    return user.isActive ? 'btn-warning' : 'btn-success';
+}
+
   // ... (Your other helper/validation methods can go here if you have them)
 }

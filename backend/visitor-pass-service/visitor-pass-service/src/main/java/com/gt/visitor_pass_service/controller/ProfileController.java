@@ -24,7 +24,6 @@ public class ProfileController {
 
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get My Profile", description = "Retrieves the complete profile details for the currently authenticated user.")
     public ResponseEntity<UserResponse> getMyProfile(Authentication authentication) {
         String userEmail = authentication.getName();
         UserResponse userProfile = userService.getCurrentUserProfile(userEmail);
@@ -33,7 +32,6 @@ public class ProfileController {
 
     @PutMapping("/me")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Update My Profile", description = "Allows the authenticated user to update their own contact information, email, and address.")
     public ResponseEntity<UserResponse> updateMyProfile(Authentication authentication, @Valid @RequestBody UpdateProfileRequest request) {
         String userEmail = authentication.getName();
         UserResponse updatedProfile = userService.updateUserProfile(userEmail, request);

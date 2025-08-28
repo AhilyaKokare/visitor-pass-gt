@@ -99,23 +99,24 @@ public void handleUserCreated(UserCreatedEvent event) {
     logger.info("Received UserCreatedEvent for new user: {}", event.getNewUserEmail());
     String subject = "Welcome to the Visitor Pass Management System!";
 
-    // VVV --- THIS IS THE NEW HTML TEMPLATE LOGIC --- VVV
-    
-    // 1. Create a map of details for the new user's email.
+    // VVV --- THIS IS THE CORRECTED MAP --- VVV
     Map<String, String> details = new LinkedHashMap<>();
     details.put("Username / Email", "<strong>" + event.getNewUserEmail() + "</strong>");
     details.put("Assigned Role", event.getNewUserRole().replace("ROLE_", ""));
     details.put("Location", event.getTenantName());
+    // This line ensures the 'Created By' field is added to the email
     details.put("Account Created By", event.getCreatedByAdminName());
     details.put("Login Page", "<a href='" + event.getLoginUrl() + "' style='color: #0d6efd;'>Click here to log in</a>");
 
-    // 2. Build the email using our reusable template helper.
+    // The outro message also uses the admin's name
+    String outro = "<strong>Important Next Steps:</strong> Please obtain your temporary password directly from the administrator who created your account (" + event.getCreatedByAdminName() + "). For security, we strongly recommend you change your password after your first login.";
+
     String body = createHtmlEmailTemplate(
         "Your Account is Ready!",
         "Welcome, " + event.getNewUserName() + "!",
         "An account has been created for you in the Visitor Pass Management System. You can now access the platform using your email address.",
         details,
-        "<strong>Important Next Steps:</strong> Please obtain your temporary password directly from the administrator who created your account (" + event.getCreatedByAdminName() + "). For security, we strongly recommend you change your password after your first login."
+        outro
     );
 
     processEmailNotification(null, event.getNewUserEmail(), subject, body);

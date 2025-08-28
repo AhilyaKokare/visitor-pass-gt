@@ -1,4 +1,4 @@
-<!-- FILE: frontend/visitor-pass-frontend/src/app/features/admin/user-list/user-list.component.html -->
+FILE: frontend/visitor-pass-frontend/src/app/features/admin/user-list/user-list.component.html
 
 <div class="container mt-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
@@ -26,27 +26,29 @@
             <th>Name</th>
             <th>Email</th>
             <th>Role</th>
-            
             <th>Status</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
-         <tr *ngFor="let user of userPage?.content; let i = index">
-            <td>{{ (currentPage * pageSize) + i + 1 }}</td>
-            <td>{{ user.name }}</td>
-            <td>{{ user.email }}</td>
-            <td>{{ user.role.replace('ROLE_', '') | titlecase }}</td>
-            <!-- <td>
-              <span class="badge" [ngClass]="user.isActive ? 'bg-success' : 'bg-secondary'">
-                {{ user.isActive ? 'Active' : 'Inactive' }}
-              </span>
-            </td> -->
-            <td>
-              <button class="btn btn-sm" [ngClass]="user.isActive ? 'btn-warning' : 'btn-success'" (click)="toggleUserStatus(user)">
-                {{ user.isActive ? 'Deactivate' : 'Activate' }}
-              </button>
-            </td>
-          </tr>
+        <tr *ngFor="let user of userPage?.content; let i = index">
+                <td>{{ (currentPage * pageSize) + i + 1 }}</td>
+                <td>{{ user.name }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.role.replace('ROLE_', '') | titlecase }}</td>
+                <td>
+                    <!-- The class is now determined by a simple function call -->
+                    <span class="badge" [ngClass]="getStatusBadgeClass(user)">
+                    {{ user.isActive ? 'Active' : 'Inactive' }}
+                    </span>
+                </td>
+                <td>
+                    <!-- The class and text are now determined by simple function calls -->
+                    <button class="btn btn-sm" [ngClass]="getActionButtonClass(user)" (click)="toggleUserStatus(user)">
+                    {{ getActionButtonText(user) }}
+                    </button>
+                </td>
+            </tr>
           <tr *ngIf="!isLoading && userPage?.empty">
             <td colspan="6" class="text-center">No users found for this location. Click "Create New User" to begin.</td>
           </tr>

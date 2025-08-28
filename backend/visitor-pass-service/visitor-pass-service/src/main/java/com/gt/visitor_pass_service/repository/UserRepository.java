@@ -20,4 +20,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Page<User> findByTenantId(Long tenantId, Pageable pageable);
 
     Optional<User> findFirstByTenantIdAndRole(Long tenantId, String role);
+
+    boolean existsByEmail(String email);
 }
