@@ -91,33 +91,16 @@ public class UserService { // Renamed from AdminService
         User savedAdmin = userRepository.save(tenantAdmin);
 
         // Step 2.1: Send comprehensive welcome email to the new tenant admin
-        try {
-            System.out.println("=== SENDING COMPREHENSIVE TENANT CREATION EMAIL ===");
-            System.out.println("Tenant: " + savedTenant.getName());
-            System.out.println("Admin: " + savedAdmin.getName());
-            System.out.println("Email: " + savedAdmin.getEmail());
-
-            emailService.sendTenantCreationWelcomeEmail(
-                savedAdmin.getEmail(),           // To email
-                savedAdmin.getName(),            // Admin name
-                savedAdmin.getContact(),         // Admin contact
-                savedTenant.getName(),           // Location name
-                savedTenant.getLocationDetails(), // Location address
-                request.getAdminPassword(),      // Original password (before encoding)
-                creatorName                      // Creator name
-            );
-
-            System.out.println("✅ Comprehensive tenant creation email sent successfully!");
-            System.out.println("📧 Email sent to: " + savedAdmin.getEmail());
-            System.out.println("🏢 Location: " + savedTenant.getName());
-
-        } catch (Exception e) {
-            System.err.println("❌ Failed to send tenant creation email to: " + savedAdmin.getEmail());
-            System.err.println("Error type: " + e.getClass().getSimpleName());
-            System.err.println("Error message: " + e.getMessage());
-            e.printStackTrace();
-            // Don't fail the entire operation if email fails - just log the error
-        }
+       UserCreatedEvent event = new UserCreatedEvent(
+    savedAdmin.getName(),
+    savedAdmin.getEmail(),
+    savedAdmin.getRole(),
+    savedTenant.getName(),
+    "http://localhost:4200/login", // Your frontend login URL
+    creatorName // The name of the Super Admin, which is passed into this method
+);
+rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, RabbitMQConfig.ROUTING_KEY_USER_CREATED, event);
+System.out.println(">>> UserCreatedEvent sent for new Tenant Admin: " + savedAdmin.getEmail());
 
         auditService.logEvent("TENANT_CREATED", null, savedTenant.getId(), null);
         auditService.logEvent("TENANT_ADMIN_CREATED", savedAdmin.getId(), savedTenant.getId(), null);
@@ -154,14 +137,9 @@ public class UserService { // Renamed from AdminService
         return tenantRepository.save(tenant);
     }
 
-   public UserResponse createTenantAdmin(Long tenantId, CreateUserRequest request) {
-    request.setRole("ROLE_TENANT_ADMIN");
-    // A Tenant Admin is typically created by a Super Admin.
-    // We provide a placeholder email here to satisfy the method signature.
-    String placeholderSuperAdminEmail = "superadmin@system.com";
-    return createUser(tenantId, request, placeholderSuperAdminEmail);
-}
-   @Transactional
+ 
+
+@Transactional
 public UserResponse createUser(Long tenantId, CreateUserRequest request, String adminEmail) {
     validateEmailUniqueness(request.getEmail(), null);
     validateMobileUniqueness(request.getContact(), null);
@@ -189,44 +167,51 @@ public UserResponse createUser(Long tenantId, CreateUserRequest request, String 
     User savedUser = userRepository.save(user);
     auditService.logEvent("USER_CREATED", creatingAdmin.getId(), tenantId, savedUser.getId());
 
+    // This constructor call now provides all 6 arguments
     UserCreatedEvent event = new UserCreatedEvent(
             savedUser.getName(),
             savedUser.getEmail(),
             savedUser.getRole(),
             tenant.getName(),
             "http://localhost:4200/login",
-            creatingAdmin.getName() // This now matches the updated DTO
+            creatingAdmin.getName()
     );
     rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, RabbitMQConfig.ROUTING_KEY_USER_CREATED, event);
 
     return mapToUserResponse(savedUser);
 }
 
-    public Page<UserResponse> getUsersInTenant(Long tenantId, Pageable pageable) {
+
+// VVV --- ADD THIS METHOD --- VVV
+public Page<UserResponse> getUsersByTenant(Long tenantId, Pageable pageable) {
     Page<User> userPage = userRepository.findByTenantId(tenantId, pageable);
     return userPage.map(this::mapToUserResponse);
 }
-    public UserResponse updateUserStatus(Long userId, Long tenantId, boolean isActive) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
-        if (user.getTenant() == null || !user.getTenant().getId().equals(tenantId)) {
-            throw new AccessDeniedException("User does not belong to the specified tenant.");
-        }
 
-        user.setActive(isActive);
-        User savedUser = userRepository.save(user);
-        auditService.logEvent(isActive ? "USER_ACTIVATED" : "USER_DEACTIVATED", savedUser.getId(), tenantId, null);
-        return mapToUserResponse(savedUser);
+// VVV --- ADD THIS METHOD --- VVV
+public UserResponse updateUserStatus(Long userId, Long tenantId, boolean isActive) {
+    User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+
+    if (user.getTenant() == null || !user.getTenant().getId().equals(tenantId)) {
+        throw new AccessDeniedException("User does not belong to the specified tenant.");
     }
 
-    // --- NEW Profile Management Functions ---
+    user.setActive(isActive);
+    User savedUser = userRepository.save(user);
+    auditService.logEvent(isActive ? "USER_ACTIVATED" : "USER_DEACTIVATED", savedUser.getId(), tenantId, null);
+    return mapToUserResponse(savedUser);
+}
 
-    public UserResponse getCurrentUserProfile(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
-        return mapToUserResponse(user);
-    }
+
+// VVV --- ADD THIS METHOD --- VVV
+public UserResponse getCurrentUserProfile(String email) {
+    User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
+    return mapToUserResponse(user);
+}
+
 
     public UserResponse updateUserProfile(String email, UpdateProfileRequest request) {
         User user = userRepository.findByEmail(email)
